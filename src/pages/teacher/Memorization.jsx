@@ -3,7 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { storage, KEYS } from '../../utils/storage';
 import { SURAHS, calcHizbProgress } from '../../utils/quranData';
-import { formatHijri, formatGregorian, todayISO } from '../../utils/hijriDate';
+import { formatHijri, formatGregorian, todayISO, gregorianToHijri, hijriToGregorian, HIJRI_MONTHS_AR, HIJRI_MONTHS_EN } from '../../utils/hijriDate';
 import { generateId } from '../../utils/auth';
 import { ConfirmModal } from '../../components/common/Modal';
 
@@ -16,7 +16,13 @@ const evalColors = {
 
 const TeacherMemorization = () => {
   const { user } = useAuth();
-  const { t, lang } = useLanguage();
+  const { t, lang, dir } = useLanguage();
+
+  const todayHijri = gregorianToHijri(new Date());
+  const [hijriYear, setHijriYear] = useState(todayHijri.year);
+  const [hijriMonth, setHijriMonth] = useState(todayHijri.month);
+  const [hijriDay, setHijriDay] = useState(todayHijri.day);
+
   const [form, setForm] = useState({
     classId: '', studentId: '', date: todayISO(),
     surahId: 1, fromAyah: 1, toAyah: 1, evaluation: 'good',
@@ -32,6 +38,18 @@ const TeacherMemorization = () => {
 
   const myClasses = useMemo(() => storage.getAll(KEYS.CLASSES).filter(c => c.teacherId === user?.id), [user]);
   const allUsers = storage.getAll(KEYS.USERS);
+
+  const hijriMonthNames = lang === 'ar' ? HIJRI_MONTHS_AR : HIJRI_MONTHS_EN;
+  const hijriYears = Array.from({ length: 15 }, (_, i) => todayHijri.year - 5 + i);
+
+  const updateHijriDate = (y, m, d) => {
+    const iso = hijriToGregorian(y, m, d);
+    setForm(f => ({ ...f, date: iso }));
+  };
+
+  const handleHijriYearChange = (y) => { const v = parseInt(y); setHijriYear(v); updateHijriDate(v, hijriMonth, hijriDay); };
+  const handleHijriMonthChange = (m) => { const v = parseInt(m); setHijriMonth(v); updateHijriDate(hijriYear, v, hijriDay); };
+  const handleHijriDayChange = (d) => { const v = parseInt(d); setHijriDay(v); updateHijriDate(hijriYear, hijriMonth, v); };
 
   const studentsForClass = useMemo(() => {
     if (!form.classId) return [];
@@ -54,7 +72,9 @@ const TeacherMemorization = () => {
       const cls = myClasses.find(c => c.id === m.classId);
       const surah = SURAHS.find(s => s.id === m.surahId);
       return {
-        ...m, studentName: student?.name || '?', className: cls?.name || '?',
+        ...m,
+        studentName: student?.nameAr || student?.name || '?',
+        className: cls?.name || '?',
         surahName: lang === 'ar' ? surah?.nameAr : surah?.nameEn,
       };
     }).filter(m => !search || m.studentName.toLowerCase().includes(search.toLowerCase()))
@@ -86,7 +106,10 @@ const TeacherMemorization = () => {
 
   const handleEdit = (record) => {
     setEditId(record.id);
-    const cls = myClasses.find(c => c.id === record.classId);
+    const h = gregorianToHijri(record.date);
+    setHijriYear(h.year);
+    setHijriMonth(h.month);
+    setHijriDay(h.day);
     setForm({
       classId: record.classId, studentId: record.studentId, date: record.date,
       surahId: record.surahId, fromAyah: record.fromAyah, toAyah: record.toAyah, evaluation: record.evaluation,
@@ -123,20 +146,33 @@ const TeacherMemorization = () => {
               <label className="label">{t('common.student')}</label>
               <select value={form.studentId} onChange={e => setForm({...form, studentId: e.target.value})} className="select" required>
                 <option value="">{t('common.select')}</option>
-                {studentsForClass.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                {studentsForClass.map(s => <option key={s.id} value={s.id}>{s.nameAr || s.name}</option>)}
               </select>
             </div>
-            <div>
+            <div className="space-y-1">
               <label className="label">{t('memo.date')}</label>
-              <input type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} className="input" required />
+              <div className="grid grid-cols-3 gap-2">
+                <select value={hijriDay} onChange={e => handleHijriDayChange(e.target.value)} className="select text-sm">
+                  {Array.from({ length: 30 }, (_, i) => i + 1).map(d => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+                <select value={hijriMonth} onChange={e => handleHijriMonthChange(e.target.value)} className="select text-sm">
+                  {hijriMonthNames.map((name, i) => (
+                    <option key={i + 1} value={i + 1}>{name}</option>
+                  ))}
+                </select>
+                <select value={hijriYear} onChange={e => handleHijriYearChange(e.target.value)} className="select text-sm">
+                  {hijriYears.map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+              {form.date && (
+                <p className="text-xs text-[var(--color-text-muted)] pt-0.5">{formatGregorian(form.date, lang)}</p>
+              )}
             </div>
           </div>
-
-          {form.date && (
-            <p className="text-xs text-[var(--color-text-muted)]">
-              {formatGregorian(form.date, lang)} | {formatHijri(form.date, lang)}
-            </p>
-          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="lg:col-span-2">
@@ -174,7 +210,6 @@ const TeacherMemorization = () => {
             </div>
           </div>
 
-          {/* Hizb estimate */}
           {ayahCount > 0 && (
             <div className="flex items-center gap-4 p-3 rounded-xl bg-brand-gold-50 dark:bg-brand-gold-900/20 text-sm">
               <span className="text-brand-gold-700 dark:text-brand-gold-400 font-medium">{t('quran.ayahs')}: {ayahCount}</span>
@@ -229,7 +264,7 @@ const TeacherMemorization = () => {
               <th className="table-th">{t('common.class')}</th>
               <th className="table-th">{t('memo.date')}</th>
               <th className="table-th">{t('memo.surah')}</th>
-              <th className="table-th">{t('memo.fromAyah')} ← {t('memo.toAyah')}</th>
+              <th className="table-th">{t('memo.fromAyah')} / {t('memo.toAyah')}</th>
               <th className="table-th">{t('memo.evaluation')}</th>
               <th className="table-th">{t('common.actions')}</th>
             </tr>
@@ -242,20 +277,26 @@ const TeacherMemorization = () => {
                 <td className="table-td font-medium">{r.studentName}</td>
                 <td className="table-td text-[var(--color-text-muted)]">{r.className}</td>
                 <td className="table-td">
-                  <div className="text-sm">{r.date}</div>
-                  <div className="text-xs text-[var(--color-text-muted)]">{formatHijri(r.date, lang)}</div>
+                  <div className="font-medium text-sm">{formatHijri(r.date, lang)}</div>
+                  <div className="text-xs text-[var(--color-text-muted)]">{formatGregorian(r.date, lang)}</div>
                 </td>
                 <td className="table-td font-medium" style={{ fontFamily: lang === 'ar' ? "'Amiri', serif" : undefined }}>
                   {r.surahName}
                 </td>
                 <td className="table-td">
-                  <span className="text-brand-green-600 font-semibold">{r.fromAyah}</span>
-                  <span className="text-[var(--color-text-muted)] mx-1.5">
-                    <svg className="w-3 h-3 inline rtl-flip" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                    </svg>
-                  </span>
-                  <span className="text-brand-green-600 font-semibold">{r.toAyah}</span>
+                  {dir === 'rtl' ? (
+                    <>
+                      <span className="text-brand-green-600 font-semibold">{r.toAyah}</span>
+                      <span className="text-[var(--color-text-muted)] mx-1.5">←</span>
+                      <span className="text-brand-green-600 font-semibold">{r.fromAyah}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-brand-green-600 font-semibold">{r.fromAyah}</span>
+                      <span className="text-[var(--color-text-muted)] mx-1.5">→</span>
+                      <span className="text-brand-green-600 font-semibold">{r.toAyah}</span>
+                    </>
+                  )}
                   <span className="text-xs text-[var(--color-text-muted)] ms-1">({r.toAyah - r.fromAyah + 1})</span>
                 </td>
                 <td className="table-td">

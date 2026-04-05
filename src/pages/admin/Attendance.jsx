@@ -42,9 +42,8 @@ const AdminAttendance = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { label: t('attendance.total'), value: stats.total, color: 'bg-blue-600' },
           { label: t('attend.present'), value: stats.present, color: 'bg-brand-green-600' },
           { label: t('attend.absent'), value: stats.absent, color: 'bg-red-500' },
           { label: t('attendance.rate'), value: `${stats.rate}%`, color: 'bg-brand-gold-500' },

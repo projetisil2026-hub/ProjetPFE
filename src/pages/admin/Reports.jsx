@@ -44,6 +44,8 @@ const AdminReports = () => {
       return {
         id: cls.id,
         className: cls.name,
+        teacherAr: teacher?.nameAr || teacher?.name || '—',
+        teacherEn: teacher?.nameEn || teacher?.name || '—',
         teacher: teacher?.name || '—',
         students: students.length,
         attendance: attendRate,
@@ -51,6 +53,16 @@ const AdminReports = () => {
       };
     });
   }, [classes, users, allAttendance, allMemo, period, selectedMonth, selectedYear]);
+
+  const monthlyProgress = useMemo(() => {
+    return MONTHS.map(m => {
+      const mMemo = allMemo.filter(memo => {
+        const d = new Date(memo.date);
+        return d.getFullYear() === selectedYear && d.getMonth() + 1 === m;
+      });
+      return { month: m, hizb: calcTotalHizbProgress(mMemo) };
+    });
+  }, [allMemo, selectedYear]);
 
   const weakestClass = useMemo(() => {
     if (!classReports.length) return null;
@@ -127,6 +139,29 @@ const AdminReports = () => {
         </div>
       </div>
 
+      {/* Monthly Progress Chart */}
+      {(() => {
+        const maxHizb = Math.max(...monthlyProgress.map(m => m.hizb), 0.1);
+        return (
+          <div className="card p-5">
+            <h3 className="font-semibold text-[var(--color-text)] mb-4">{t('reports.monthlyChart')} {selectedYear}</h3>
+            <div className="flex items-end gap-1 h-32">
+              {monthlyProgress.map(mp => (
+                <div key={mp.month} className="flex-1 flex flex-col items-center gap-1">
+                  <div
+                    className={`w-full rounded-t-lg transition-all duration-500 ${period === 'monthly' && mp.month === selectedMonth ? 'bg-brand-gold-500' : 'bg-brand-green-500/60 dark:bg-brand-green-900/60'}`}
+                    style={{ height: `${Math.max((mp.hizb / maxHizb) * 100, 4)}%` }}
+                  />
+                  <span className={`text-[10px] ${period === 'monthly' && mp.month === selectedMonth ? 'font-bold text-brand-gold-600' : 'text-[var(--color-text-muted)]'}`}>
+                    {t(`month.${mp.month}`).slice(0, 3)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Class Comparison */}
       <div className="card p-5">
         <h3 className="font-semibold text-[var(--color-text)] mb-4">{t('reports.classComparison')}</h3>
@@ -179,7 +214,7 @@ const AdminReports = () => {
                     {cls.className}
                     {weakestClass?.id === cls.id && <span className="ms-2 badge bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-xs">{t('reports.weakestClass')}</span>}
                   </td>
-                  <td className="table-td text-[var(--color-text-muted)]">{cls.teacher}</td>
+                  <td className="table-td text-[var(--color-text-muted)]">{lang === 'ar' ? cls.teacherAr : cls.teacherEn}</td>
                   <td className="table-td">{cls.students}</td>
                   <td className="table-td">
                     <span className={`font-semibold ${cls.attendance >= 80 ? 'text-brand-green-600' : cls.attendance >= 60 ? 'text-brand-gold-600' : 'text-red-500'}`}>
@@ -225,7 +260,7 @@ const AdminReports = () => {
                 {idx + 1}
               </span>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-[var(--color-text)] truncate">{student.name}</p>
+                <p className="font-medium text-[var(--color-text)] truncate">{lang === 'ar' ? (student.nameAr || student.name) : (student.nameEn || student.name)}</p>
                 <p className="text-xs text-[var(--color-text-muted)]">{student.className}</p>
               </div>
               <div className="text-right">

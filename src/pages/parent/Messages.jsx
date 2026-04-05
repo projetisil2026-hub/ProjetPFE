@@ -16,12 +16,19 @@ const ParentMessages = () => {
   const allUsers = storage.getAll(KEYS.USERS);
   const children = allUsers.filter(u => user?.childrenIds?.includes(u.id));
 
-  // Get teacher for each child
-  const childTeachers = children.map(child => {
+  // One chat per unique teacher — collect all children for that teacher
+  const teacherMap = new Map();
+  children.forEach(child => {
     const cls = storage.findOne(KEYS.CLASSES, c => c.studentIds?.includes(child.id));
     const teacher = cls ? allUsers.find(u => u.id === cls.teacherId) : null;
-    return { child, teacher, cls };
-  }).filter(ct => ct.teacher);
+    if (!teacher) return;
+    if (teacherMap.has(teacher.id)) {
+      teacherMap.get(teacher.id).childNames.push(child.nameAr || child.name);
+    } else {
+      teacherMap.set(teacher.id, { teacher, childNames: [child.nameAr || child.name] });
+    }
+  });
+  const teacherChats = Array.from(teacherMap.values());
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -55,23 +62,27 @@ const ParentMessages = () => {
           <p className="text-xs text-[var(--color-text-muted)] mt-0.5">{t('msg.withTeacher')}</p>
         </div>
         <div className="flex-1 overflow-y-auto p-2">
-          {childTeachers.length === 0 ? (
+          {teacherChats.length === 0 ? (
             <p className="text-sm text-[var(--color-text-muted)] p-3">{t('common.noData')}</p>
-          ) : childTeachers.map(({ child, teacher }) => (
-            <button
-              key={`${child.id}_${teacher.id}`}
-              onClick={() => openChat(teacher.id, `${teacher.name} (Re: ${child.name})`)}
-              className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-start transition-colors mb-1 ${activeChatId === getChatId(teacher.id) ? 'bg-brand-green-100 dark:bg-brand-green-900/30' : 'hover:bg-[var(--color-border)]'}`}
-            >
-              <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                {teacher.name.charAt(0)}
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-medium truncate">{teacher.name}</p>
-                <p className="text-xs text-[var(--color-text-muted)] truncate">Re: {child.name}</p>
-              </div>
-            </button>
-          ))}
+          ) : teacherChats.map(({ teacher, childNames }) => {
+            const chatId = getChatId(teacher.id, 'private');
+            const isActive = activeChatId === chatId;
+            return (
+              <button
+                key={teacher.id}
+                onClick={() => openChat(teacher.id, teacher.nameAr || teacher.name)}
+                className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-start transition-colors mb-1 ${isActive ? 'bg-brand-green-100 dark:bg-brand-green-900/30 border border-brand-green-300 dark:border-brand-green-700' : 'hover:bg-[var(--color-border)] border border-transparent'}`}
+              >
+                <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                  {(teacher.nameAr || teacher.name || '?').charAt(0)}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{teacher.nameAr || teacher.name}</p>
+                  <p className="text-xs text-[var(--color-text-muted)] truncate">{childNames.join(', ')}</p>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -88,9 +99,14 @@ const ParentMessages = () => {
           </div>
         ) : (
           <>
-            <div className="px-5 py-4 border-b border-[var(--color-border)]">
-              <p className="font-semibold">{activeChatLabel}</p>
-              <p className="text-xs text-[var(--color-text-muted)]">{t('msg.private')}</p>
+            <div className="px-5 py-4 border-b border-[var(--color-border)] flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold">
+                {activeChatLabel.charAt(0)}
+              </div>
+              <div>
+                <p className="font-semibold text-[var(--color-text)]">{activeChatLabel}</p>
+                <p className="text-xs text-[var(--color-text-muted)]">{t('msg.private')}</p>
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {conversation.length === 0 && <p className="text-center text-sm text-[var(--color-text-muted)]">{t('msg.noMessages')}</p>}
@@ -110,7 +126,7 @@ const ParentMessages = () => {
             <form onSubmit={handleSend} className="px-4 py-3 border-t border-[var(--color-border)] flex gap-2">
               <input type="text" value={text} onChange={e => setText(e.target.value)} placeholder={t('msg.typeMessage')} className="input flex-1" />
               <button type="submit" disabled={!text.trim()} className="btn-primary px-5">
-                <svg className={`w-4 h-4 ${lang === 'ar' ? 'rtl-flip' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
               </button>
             </form>
           </>

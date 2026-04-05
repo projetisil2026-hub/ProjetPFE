@@ -64,6 +64,8 @@ const ParentReports = () => {
 
   const isEndOfMonth = new Date().getDate() >= 25;
 
+  const schoolInfo = storage.get('tatabu_school_info', {});
+
   const handleExport = () => {
     if (!isEndOfMonth) return;
     if (!selectedChild || !stats) return;
@@ -74,6 +76,10 @@ const ParentReports = () => {
       teacherNotes: stats.teacherNote,
       classN: childClass?.name,
       period: `${t(`month.${selectedMonth}`)} ${selectedYear}`,
+      schoolName: schoolInfo.name,
+      country: schoolInfo.country,
+      region: schoolInfo.region,
+      teacherName: childTeacher ? (childTeacher.nameAr || childTeacher.name) : undefined,
     });
   };
 
@@ -98,7 +104,7 @@ const ParentReports = () => {
               {children.map(c => (
                 <button key={c.id} onClick={() => setSelectedChildId(c.id)}
                   className={`px-3 py-1.5 rounded-xl border-2 text-sm font-medium transition-all ${selectedChild?.id === c.id ? 'border-brand-green-600 bg-brand-green-50 dark:bg-brand-green-900/20 text-brand-green-700' : 'border-[var(--color-border)] text-[var(--color-text-muted)]'}`}>
-                  {c.name}
+                  {c.nameAr || c.name}
                 </button>
               ))}
             </div>
@@ -110,7 +116,7 @@ const ParentReports = () => {
             </select>
           </div>
           <div>
-            <label className="label">{t('common.year')}</label>
+            <label className="label">{t('reports.academicSeason')}</label>
             <input type="number" value={selectedYear} onChange={e => setSelectedYear(parseInt(e.target.value))} className="input w-28" min="2020" max="2030" />
           </div>
         </div>
@@ -176,8 +182,8 @@ const ParentReports = () => {
               <h3 className="font-semibold text-[var(--color-text)] mb-3">{t('reports.teacherNotes')}</h3>
               {childTeacher && (
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white text-xs font-bold">{childTeacher.name.charAt(0)}</div>
-                  <span className="text-sm font-medium">{childTeacher.name}</span>
+                  <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white text-xs font-bold">{(childTeacher.nameAr || childTeacher.name || '?').charAt(0)}</div>
+                  <span className="text-sm font-medium">{childTeacher.nameAr || childTeacher.name}</span>
                 </div>
               )}
               <p className="text-sm text-[var(--color-text-muted)] leading-relaxed p-3 rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)]">

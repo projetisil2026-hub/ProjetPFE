@@ -5,7 +5,7 @@ import { SURAHS, getSurahName, calcTotalHizbProgress } from '../../utils/quranDa
 import { formatHijri } from '../../utils/hijriDate';
 
 const AdminMemorization = () => {
-  const { t, lang } = useLanguage();
+  const { t, lang, dir } = useLanguage();
   const [filterClass, setFilterClass] = useState('');
   const [filterDate, setFilterDate] = useState('');
   const [filterSurah, setFilterSurah] = useState('');
@@ -26,14 +26,18 @@ const AdminMemorization = () => {
       const surah = SURAHS.find(s => s.id === m.surahId);
       return {
         ...m,
-        studentName: student?.name || '?',
+        studentName: lang === 'ar' ? (student?.nameAr || student?.name || '?') : (student?.nameEn || student?.name || '?'),
         className: cls?.name || '?',
         surahName: lang === 'ar' ? surah?.nameAr : surah?.nameEn,
         ayahCount: m.toAyah - m.fromAyah + 1,
       };
     }).filter(m => {
-      if (search) return m.studentName.toLowerCase().includes(search.toLowerCase());
-      return true;
+      if (!search) return true;
+      const s = users.find(u => u.id === m.studentId);
+      const nameAr = s?.nameAr || s?.name || '';
+      const nameEn = s?.nameEn || s?.name || '';
+      return nameAr.toLowerCase().includes(search.toLowerCase()) ||
+             nameEn.toLowerCase().includes(search.toLowerCase());
     }).sort((a, b) => new Date(b.date) - new Date(a.date));
   }, [filterClass, filterDate, filterSurah, search, users, classes, lang]);
 
@@ -88,16 +92,26 @@ const AdminMemorization = () => {
                 <td className="table-td font-medium">{r.studentName}</td>
                 <td className="table-td text-[var(--color-text-muted)]">{r.className}</td>
                 <td className="table-td">
-                  <div>{r.date}</div>
-                  <div className="text-xs text-[var(--color-text-muted)]">{formatHijri(r.date, lang)}</div>
+                  <div className="text-sm font-medium">{formatHijri(r.date, lang)}</div>
+                  <div className="text-xs text-[var(--color-text-muted)]">{r.date}</div>
                 </td>
                 <td className="table-td font-medium" style={{ fontFamily: lang === 'ar' ? "'Amiri', serif" : undefined }}>
                   {r.surahName}
                 </td>
                 <td className="table-td">
-                  <span className="text-brand-green-600 font-medium">{r.fromAyah}</span>
-                  <span className="text-[var(--color-text-muted)] mx-1">→</span>
-                  <span className="text-brand-green-600 font-medium">{r.toAyah}</span>
+                  {dir === 'rtl' ? (
+                    <>
+                      <span className="text-brand-green-600 font-medium">{r.toAyah}</span>
+                      <span className="text-[var(--color-text-muted)] mx-1">←</span>
+                      <span className="text-brand-green-600 font-medium">{r.fromAyah}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-brand-green-600 font-medium">{r.fromAyah}</span>
+                      <span className="text-[var(--color-text-muted)] mx-1">→</span>
+                      <span className="text-brand-green-600 font-medium">{r.toAyah}</span>
+                    </>
+                  )}
                   <span className="text-xs text-[var(--color-text-muted)] ms-1">({r.ayahCount})</span>
                 </td>
                 <td className="table-td">

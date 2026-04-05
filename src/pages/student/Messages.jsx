@@ -67,10 +67,10 @@ const StudentMessages = () => {
             <div>
               <p className="text-xs font-semibold text-[var(--color-text-muted)] px-2 py-1 uppercase">{t('role.teacher')}</p>
               <ChatBtn
-                onClick={() => openChat(myTeacher.id, myTeacher.name)}
+                onClick={() => openChat(myTeacher.id, myTeacher.nameAr || myTeacher.name)}
                 isActive={activeChatId === getChatId(myTeacher.id)}
-                avatar={{ color: '#2563eb', letter: myTeacher.name.charAt(0) }}
-                label={myTeacher.name}
+                avatar={{ color: '#2563eb', letter: (myTeacher.nameAr || myTeacher.name || '?').charAt(0) }}
+                label={myTeacher.nameAr || myTeacher.name}
                 sub={t('role.teacher')}
               />
             </div>
@@ -103,9 +103,14 @@ const StudentMessages = () => {
           </div>
         ) : (
           <>
-            <div className="px-5 py-4 border-b border-[var(--color-border)]">
-              <p className="font-semibold">{activeChatLabel}</p>
-              <p className="text-xs text-[var(--color-text-muted)]">{chatType === 'group' ? t('msg.group') : t('msg.private')}</p>
+            <div className="px-5 py-4 border-b border-[var(--color-border)] flex items-center gap-3">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold ${chatType === 'group' ? 'bg-brand-green-600' : 'bg-blue-600'}`}>
+                {chatType === 'group' ? 'G' : activeChatLabel.charAt(0)}
+              </div>
+              <div>
+                <p className="font-semibold text-[var(--color-text)]">{activeChatLabel}</p>
+                <p className="text-xs text-[var(--color-text-muted)]">{chatType === 'group' ? t('msg.group') : t('msg.private')}</p>
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {conversation.length === 0 && <p className="text-center text-sm text-[var(--color-text-muted)]">{t('msg.noMessages')}</p>}
@@ -125,7 +130,7 @@ const StudentMessages = () => {
             <form onSubmit={handleSend} className="px-4 py-3 border-t border-[var(--color-border)] flex gap-2">
               <input type="text" value={text} onChange={e => setText(e.target.value)} placeholder={t('msg.typeMessage')} className="input flex-1" />
               <button type="submit" disabled={!text.trim()} className="btn-primary px-5">
-                <svg className={`w-4 h-4 ${lang === 'ar' ? 'rtl-flip' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
               </button>
             </form>
           </>

@@ -1,12 +1,16 @@
 import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { storage, KEYS } from '../../utils/storage';
-import { formatGregorian } from '../../utils/hijriDate';
+import { formatGregorian, formatHijri } from '../../utils/hijriDate';
 
 const TeacherDashboard = () => {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const today = new Date();
 
   const myClasses = useMemo(() => {
     const classes = storage.getAll(KEYS.CLASSES);
@@ -19,15 +23,20 @@ const TeacherDashboard = () => {
       }));
   }, [user]);
 
+  const totalStudents = myClasses.reduce((sum, c) => sum + c.students.length, 0);
+
   const DAYS = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
   const dayNames = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
-  const todayDay = dayNames[new Date().getDay()];
+  const todayDay = dayNames[today.getDay()];
 
   return (
     <div className="space-y-6">
       <div className="page-header">
         <h1 className="page-title">{t('teacher.dashboard.title')}</h1>
-        <p className="page-subtitle">{formatGregorian(new Date())}</p>
+        <div className="flex flex-col gap-0.5">
+          <p className="text-sm font-medium text-[var(--color-text)]">{formatHijri(today, lang)}</p>
+          <p className="page-subtitle text-xs">{formatGregorian(today, lang)}</p>
+        </div>
       </div>
 
       {/* Stats */}
@@ -38,21 +47,26 @@ const TeacherDashboard = () => {
           </div>
           <div>
             <p className="text-sm text-[var(--color-text-muted)]">{t('teacher.dashboard.myClasses')}</p>
-            <p className="text-xl font-bold text-[var(--color-text)]">{myClasses.reduce((sum, c) => sum + c.sessionsPerWeek, 0)} {t('teacher.dashboard.sessions').toLowerCase()}/week</p>
+            <p className="text-xl font-bold text-[var(--color-text)]">
+              {myClasses.reduce((sum, c) => sum + c.sessionsPerWeek, 0)} {t('teacher.dashboard.sessions').toLowerCase()}/wk
+            </p>
           </div>
         </div>
-        <div className="card p-5 flex items-center gap-4">
+        <div
+          className="card p-5 flex items-center gap-4 cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => navigate('/teacher/students')}
+        >
           <div className="w-12 h-12 rounded-xl bg-brand-gold-500 flex items-center justify-center text-white font-bold text-xl">
-            {myClasses.reduce((sum, c) => sum + c.students.length, 0)}
+            {totalStudents}
           </div>
           <div>
-            <p className="text-sm text-[var(--color-text-muted)]">{t('nav.students')}</p>
-            <p className="text-xl font-bold text-[var(--color-text)]">{t('common.total')}</p>
+            <p className="text-sm text-[var(--color-text-muted)]">{t('teacher.dashboard.totalStudents')}</p>
+            <p className="text-xl font-bold text-[var(--color-text)]">{t('nav.students')}</p>
           </div>
         </div>
       </div>
 
-      {/* Each class schedule */}
+      {/* Each class schedule — no student list */}
       {myClasses.length === 0 ? (
         <div className="card p-10 text-center text-[var(--color-text-muted)]">
           {t('common.noData')}
@@ -101,18 +115,6 @@ const TeacherDashboard = () => {
                 </tr>
               </tbody>
             </table>
-          </div>
-
-          {/* Student list */}
-          <div className="mt-4 flex flex-wrap gap-2">
-            {cls.students.map(s => (
-              <span key={s.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] text-sm">
-                <span className="w-5 h-5 rounded-lg bg-brand-green-600 flex items-center justify-center text-white text-xs font-bold">
-                  {s.name.charAt(0)}
-                </span>
-                {s.name}
-              </span>
-            ))}
           </div>
         </div>
       ))}

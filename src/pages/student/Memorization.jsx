@@ -14,7 +14,7 @@ const evalColors = {
 
 const StudentMemorization = () => {
   const { user } = useAuth();
-  const { t, lang } = useLanguage();
+  const { t, lang, dir } = useLanguage();
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
@@ -93,7 +93,7 @@ const StudentMemorization = () => {
             <tr>
               <th className="table-th">{t('memo.date')}</th>
               <th className="table-th">{t('memo.surah')}</th>
-              <th className="table-th">{t('memo.fromAyah')} → {t('memo.toAyah')}</th>
+              <th className="table-th">{t('memo.fromAyah')} / {t('memo.toAyah')}</th>
               <th className="table-th">{t('quran.ayahs')}</th>
               <th className="table-th">{t('memo.evaluation')}</th>
             </tr>
@@ -104,16 +104,26 @@ const StudentMemorization = () => {
             ) : records.map(r => (
               <tr key={r.id} className="table-row">
                 <td className="table-td">
-                  <div>{r.date}</div>
-                  <div className="text-xs text-[var(--color-text-muted)]">{formatHijri(r.date, lang)}</div>
+                  <div className="font-medium text-sm">{formatHijri(r.date, lang)}</div>
+                  <div className="text-xs text-[var(--color-text-muted)]">{formatGregorian(r.date, lang)}</div>
                 </td>
                 <td className="table-td font-medium" style={{ fontFamily: lang === 'ar' ? "'Amiri', serif" : undefined }}>
                   {r.surahName}
                 </td>
                 <td className="table-td">
-                  <span className="font-semibold text-brand-green-600">{r.fromAyah}</span>
-                  <span className="text-[var(--color-text-muted)] mx-1">→</span>
-                  <span className="font-semibold text-brand-green-600">{r.toAyah}</span>
+                  {dir === 'rtl' ? (
+                    <>
+                      <span className="font-semibold text-brand-green-600">{r.toAyah}</span>
+                      <span className="text-[var(--color-text-muted)] mx-1">←</span>
+                      <span className="font-semibold text-brand-green-600">{r.fromAyah}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-semibold text-brand-green-600">{r.fromAyah}</span>
+                      <span className="text-[var(--color-text-muted)] mx-1">→</span>
+                      <span className="font-semibold text-brand-green-600">{r.toAyah}</span>
+                    </>
+                  )}
                 </td>
                 <td className="table-td font-medium">{r.toAyah - r.fromAyah + 1}</td>
                 <td className="table-td">

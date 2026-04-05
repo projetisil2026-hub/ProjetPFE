@@ -6,14 +6,19 @@ import { storage, KEYS } from '../../utils/storage';
 
 const AdminMessages = () => {
   const { user } = useAuth();
-  const { t, lang } = useLanguage();
+  const { t, lang, dir } = useLanguage();
   const { sendMessage, getChatId, getConversation, getChats, messages } = useSocket();
   const [activeChatId, setActiveChatId] = useState(null);
   const [text, setText] = useState('');
+  const [teacherSearch, setTeacherSearch] = useState('');
   const messagesEndRef = useRef(null);
 
   const allUsers = storage.getAll(KEYS.USERS).filter(u => u.id !== user?.id && u.role !== 'admin');
-  const teachers = allUsers.filter(u => u.role === 'teacher');
+  const teachers = allUsers.filter(u => u.role === 'teacher').filter(u =>
+    !teacherSearch ||
+    (u.nameAr || u.name || '').toLowerCase().includes(teacherSearch.toLowerCase()) ||
+    (u.nameEn || '').toLowerCase().includes(teacherSearch.toLowerCase())
+  );
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -52,11 +57,21 @@ const AdminMessages = () => {
       {/* Contacts panel */}
       <div className="w-64 flex-shrink-0 card flex flex-col overflow-hidden">
         <div className="p-4 border-b border-[var(--color-border)]">
-          <h2 className="font-semibold text-[var(--color-text)]">{t('msg.title')}</h2>
+          <h2 className="font-semibold text-[var(--color-text)] mb-2">{t('msg.title')}</h2>
+          <input
+            type="text"
+            value={teacherSearch}
+            onChange={e => setTeacherSearch(e.target.value)}
+            placeholder={t('msg.searchTeacher')}
+            className="input text-sm"
+          />
         </div>
         <div className="flex-1 overflow-y-auto">
           <div className="p-2">
             <p className="text-xs font-semibold text-[var(--color-text-muted)] px-2 py-1 uppercase tracking-wider">{t('role.teacher')}</p>
+            {teachers.length === 0 && (
+              <p className="text-xs text-center text-[var(--color-text-muted)] py-4">{t('common.noData')}</p>
+            )}
             {teachers.map(u => (
               <button
                 key={u.id}
@@ -64,10 +79,10 @@ const AdminMessages = () => {
                 className={`w-full flex items-center gap-3 p-3 rounded-xl transition-colors text-start ${activeChatId === getChatId(u.id) ? 'bg-brand-green-100 dark:bg-brand-green-900/30' : 'hover:bg-[var(--color-border)]'}`}
               >
                 <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                  {u.name.charAt(0)}
+                  {(u.nameAr || u.name || '?').charAt(0)}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-[var(--color-text)] truncate">{u.name}</p>
+                  <p className="text-sm font-medium text-[var(--color-text)] truncate">{u.nameAr || u.name}</p>
                   <p className="text-xs text-[var(--color-text-muted)]">{t(`role.${u.role}`)}</p>
                 </div>
               </button>
@@ -96,10 +111,10 @@ const AdminMessages = () => {
                 return (
                   <>
                     <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold">
-                      {other?.name?.charAt(0)}
+                      {(other?.nameAr || other?.name || '?').charAt(0)}
                     </div>
                     <div>
-                      <p className="font-semibold text-[var(--color-text)]">{other?.name}</p>
+                      <p className="font-semibold text-[var(--color-text)]">{other?.nameAr || other?.name}</p>
                       <p className="text-xs text-[var(--color-text-muted)]">{t(`role.${other?.role}`)}</p>
                     </div>
                   </>
@@ -140,8 +155,8 @@ const AdminMessages = () => {
                 className="input flex-1"
               />
               <button type="submit" disabled={!text.trim()} className="btn-primary px-5">
-                <svg className={`w-4 h-4 ${lang === 'ar' ? 'rtl-flip' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                 </svg>
               </button>
             </form>

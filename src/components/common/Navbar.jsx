@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useNotifications } from '../../contexts/NotificationContext';
+import { storage } from '../../utils/storage';
 import Logo from './Logo';
 
 const Navbar = ({ onMenuClick }) => {
@@ -11,6 +12,9 @@ const Navbar = ({ onMenuClick }) => {
   const { unreadCount, notifications, markAllRead } = useNotifications();
   const [showNotifs, setShowNotifs] = useState(false);
   const navigate = useNavigate();
+
+  const schoolInfo = storage.get('tatabu_school_info', {});
+  const schoolName = schoolInfo?.name || '';
 
   const notifPath = `/${user?.role}/dashboard`;
 
@@ -30,6 +34,15 @@ const Navbar = ({ onMenuClick }) => {
       <div className="lg:hidden">
         <Logo size="sm" />
       </div>
+
+      {/* School name (desktop) */}
+      {schoolName && (
+        <div className="hidden lg:flex items-center gap-2 ms-2">
+          <span className="text-sm font-semibold text-brand-green-700 dark:text-brand-green-400 bg-brand-green-50 dark:bg-brand-green-900/20 px-3 py-1 rounded-xl border border-brand-green-200 dark:border-brand-green-800">
+            {schoolName}
+          </span>
+        </div>
+      )}
 
       {/* Spacer */}
       <div className="flex-1" />

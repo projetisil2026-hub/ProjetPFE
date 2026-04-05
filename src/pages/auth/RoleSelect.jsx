@@ -90,17 +90,6 @@ const RoleSelect = () => {
         {/* Header */}
         <div className="text-center mb-10">
           <Logo size="lg" className="justify-center mb-6" />
-          <h1 className="text-3xl font-bold text-[var(--color-text)] mb-2">
-            {t('auth.selectRole')}
-          </h1>
-          <p className="text-[var(--color-text-muted)] text-lg">{t('auth.selectRoleDesc')}</p>
-
-          {/* Decorative divider */}
-          <div className="flex items-center justify-center gap-3 mt-4">
-            <div className="h-px w-16 bg-brand-gold-400" />
-            <span className="text-brand-gold-500 text-xl" style={{ fontFamily: "'Amiri', serif" }}>بسم الله</span>
-            <div className="h-px w-16 bg-brand-gold-400" />
-          </div>
         </div>
 
         {/* Role cards */}
@@ -136,17 +125,6 @@ const RoleSelect = () => {
           ))}
         </div>
 
-        {/* Demo credentials */}
-        <div className="mt-8 card p-4 w-full max-w-lg">
-          <p className="text-xs font-semibold text-brand-gold-600 mb-2 uppercase tracking-wider">Demo Credentials</p>
-          <div className="grid grid-cols-2 gap-2 text-xs text-[var(--color-text-muted)]">
-            <div><span className="font-medium">Admin:</span> admin@tatabu.com</div>
-            <div><span className="font-medium">Teacher:</span> teacher1@tatabu.com</div>
-            <div><span className="font-medium">Student:</span> student1@tatabu.com</div>
-            <div><span className="font-medium">Parent:</span> parent1@tatabu.com</div>
-            <div className="col-span-2 mt-1"><span className="font-medium">Password for all:</span> [Role]123! (e.g. Admin123!)</div>
-          </div>
-        </div>
       </div>
     </div>
   );

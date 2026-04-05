@@ -3,18 +3,18 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { storage, KEYS } from '../../utils/storage';
 import { SURAHS, calcTotalHizbProgress } from '../../utils/quranData';
-import { formatHijri } from '../../utils/hijriDate';
+import { formatHijri, formatGregorian } from '../../utils/hijriDate';
 
 const evalColors = {
-  excellent: 'bg-brand-green-100 text-brand-green-700',
-  good: 'bg-blue-100 text-blue-700',
-  average: 'bg-brand-gold-100 text-brand-gold-700',
-  repeat: 'bg-red-100 text-red-700',
+  excellent: 'bg-brand-green-100 text-brand-green-700 dark:bg-brand-green-900/30 dark:text-brand-green-400',
+  good: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  average: 'bg-brand-gold-100 text-brand-gold-700 dark:bg-brand-gold-900/30 dark:text-brand-gold-400',
+  repeat: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
 };
 
 const ParentMemorization = () => {
   const { user } = useAuth();
-  const { t, lang } = useLanguage();
+  const { t, lang, dir } = useLanguage();
   const [selectedChildId, setSelectedChildId] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -53,7 +53,7 @@ const ParentMemorization = () => {
           {children.map(c => (
             <button key={c.id} onClick={() => setSelectedChildId(c.id)}
               className={`px-4 py-2 rounded-xl border-2 text-sm font-medium transition-all ${selectedChild?.id === c.id ? 'border-brand-green-600 bg-brand-green-50 dark:bg-brand-green-900/20 text-brand-green-700' : 'border-[var(--color-border)] text-[var(--color-text-muted)]'}`}>
-              {c.name}
+              {c.nameAr || c.name}
             </button>
           ))}
         </div>
@@ -63,7 +63,7 @@ const ParentMemorization = () => {
         <>
           {/* Progress */}
           <div className="card p-5">
-            <h3 className="font-semibold mb-3">{selectedChild.name} — {t('memo.totalProgress')}</h3>
+            <h3 className="font-semibold mb-3">{selectedChild.nameAr || selectedChild.name} — {t('memo.totalProgress')}</h3>
             <div className="flex items-center gap-4">
               <div className="flex-1">
                 <div className="flex justify-between text-sm mb-1">
@@ -74,7 +74,7 @@ const ParentMemorization = () => {
                   <div className="hizb-progress h-full rounded-full" style={{ width: `${Math.min((totalHizb / 60) * 100, 100)}%` }} />
                 </div>
               </div>
-              <div className="text-right text-sm">
+              <div className="text-sm">
                 <p className="font-bold text-xl text-brand-gold-600">{totalHizb.toFixed(1)}</p>
                 <p className="text-xs text-[var(--color-text-muted)]">{t('quran.hizb')}</p>
               </div>
@@ -102,7 +102,7 @@ const ParentMemorization = () => {
                 <tr>
                   <th className="table-th">{t('memo.date')}</th>
                   <th className="table-th">{t('memo.surah')}</th>
-                  <th className="table-th">{t('memo.fromAyah')} → {t('memo.toAyah')}</th>
+                  <th className="table-th">{t('memo.fromAyah')} / {t('memo.toAyah')}</th>
                   <th className="table-th">{t('quran.ayahs')}</th>
                   <th className="table-th">{t('memo.evaluation')}</th>
                 </tr>
@@ -113,14 +113,24 @@ const ParentMemorization = () => {
                 ) : records.map(r => (
                   <tr key={r.id} className="table-row">
                     <td className="table-td">
-                      <div>{r.date}</div>
-                      <div className="text-xs text-[var(--color-text-muted)]">{formatHijri(r.date, lang)}</div>
+                      <div className="font-medium text-sm">{formatHijri(r.date, lang)}</div>
+                      <div className="text-xs text-[var(--color-text-muted)]">{formatGregorian(r.date, lang)}</div>
                     </td>
                     <td className="table-td font-medium" style={{ fontFamily: lang === 'ar' ? "'Amiri', serif" : undefined }}>{r.surahName}</td>
                     <td className="table-td">
-                      <span className="font-semibold text-brand-green-600">{r.fromAyah}</span>
-                      <span className="mx-1 text-[var(--color-text-muted)]">→</span>
-                      <span className="font-semibold text-brand-green-600">{r.toAyah}</span>
+                      {dir === 'rtl' ? (
+                        <>
+                          <span className="font-semibold text-brand-green-600">{r.toAyah}</span>
+                          <span className="mx-1 text-[var(--color-text-muted)]">←</span>
+                          <span className="font-semibold text-brand-green-600">{r.fromAyah}</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="font-semibold text-brand-green-600">{r.fromAyah}</span>
+                          <span className="mx-1 text-[var(--color-text-muted)]">→</span>
+                          <span className="font-semibold text-brand-green-600">{r.toAyah}</span>
+                        </>
+                      )}
                     </td>
                     <td className="table-td">{r.toAyah - r.fromAyah + 1}</td>
                     <td className="table-td">

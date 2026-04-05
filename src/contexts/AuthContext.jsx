@@ -18,9 +18,13 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const login = (email, password, expectedRole) => {
+  const login = (identifier, password, expectedRole) => {
     const users = storage.getAll(KEYS.USERS);
-    const found = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    // Support login by email or username
+    const found = users.find(u =>
+      u.email?.toLowerCase() === identifier.toLowerCase() ||
+      u.username?.toLowerCase() === identifier.toLowerCase()
+    );
 
     if (!found) return { success: false, error: 'user_not_found' };
     if (!verifyPassword(password, found.password)) return { success: false, error: 'invalid_password' };

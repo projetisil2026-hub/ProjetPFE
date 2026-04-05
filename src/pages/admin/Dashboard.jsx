@@ -4,12 +4,11 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { storage, KEYS } from '../../utils/storage';
-import { generateId, hashPassword } from '../../utils/auth';
-import { formatGregorian } from '../../utils/hijriDate';
+import { formatGregorian, formatHijri } from '../../utils/hijriDate';
 import Modal from '../../components/common/Modal';
 
 const StatCard = ({ icon, label, value, color, onClick }) => (
-  <div className="stat-card" onClick={onClick}>
+  <div className="stat-card cursor-pointer" onClick={onClick}>
     <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${color} flex-shrink-0`}>
       {icon}
     </div>
@@ -17,7 +16,7 @@ const StatCard = ({ icon, label, value, color, onClick }) => (
       <p className="text-sm text-[var(--color-text-muted)]">{label}</p>
       <p className="text-2xl font-bold text-[var(--color-text)]">{value}</p>
     </div>
-    <svg className="w-5 h-5 text-[var(--color-text-muted)] ms-auto rtl-flip" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg className="w-5 h-5 text-[var(--color-text-muted)] ms-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
     </svg>
   </div>
@@ -25,18 +24,18 @@ const StatCard = ({ icon, label, value, color, onClick }) => (
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const { user } = useAuth();
   const { sendNotification } = useNotifications();
 
-  const [showCreateAccount, setShowCreateAccount] = useState(false);
   const [showCreateYear, setShowCreateYear] = useState(false);
   const [showNotifModal, setShowNotifModal] = useState(false);
   const [notifMsg, setNotifMsg] = useState('');
+  const [notifSearch, setNotifSearch] = useState('');
+  const [notifRoleFilter, setNotifRoleFilter] = useState('');
+  const [selectedRecipients, setSelectedRecipients] = useState([]);
+  const [sendToAll, setSendToAll] = useState(true);
   const [toast, setToast] = useState(null);
-
-  // Account form
-  const [accountForm, setAccountForm] = useState({ role: 'teacher', name: '', email: '', password: '', gender: 'male', age: '', parentId: '' });
   // Year form
   const [yearForm, setYearForm] = useState({ name: '', startDate: '', endDate: '' });
 
@@ -45,23 +44,24 @@ const AdminDashboard = () => {
     setTimeout(() => setToast(null), 3000);
   };
 
+  const today = new Date();
+
   // Stats
   const stats = useMemo(() => {
     const users = storage.getAll(KEYS.USERS);
     const classes = storage.getAll(KEYS.CLASSES);
     const attendance = storage.getAll(KEYS.ATTENDANCE);
-    const today = new Date().toISOString().split('T')[0];
+    const todayStr = today.toISOString().split('T')[0];
 
     const students = users.filter(u => u.role === 'student');
     const teachers = users.filter(u => u.role === 'teacher');
 
-    const todayAttend = attendance.filter(a => a.date === today);
+    const todayAttend = attendance.filter(a => a.date === todayStr);
     const todayPresent = todayAttend.filter(a => a.status === 'present').length;
     const attendRate = todayAttend.length > 0 ? Math.round((todayPresent / todayAttend.length) * 100) : 0;
 
-    // Today's classes
     const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    const todayDay = dayNames[new Date().getDay()];
+    const todayDay = dayNames[today.getDay()];
     const todayClasses = classes.filter(c => c.schedule?.some(s => s.day === todayDay));
 
     return {
@@ -75,36 +75,26 @@ const AdminDashboard = () => {
   }, []);
 
   const academicYears = storage.getAll(KEYS.ACADEMIC_YEARS);
-  const parents = storage.getAll(KEYS.USERS).filter(u => u.role === 'parent');
 
-  const handleCreateAccount = (e) => {
-    e.preventDefault();
-    const newUser = {
-      id: generateId(),
-      name: accountForm.name,
-      email: accountForm.email,
-      password: hashPassword(accountForm.password),
-      role: accountForm.role,
-      gender: accountForm.gender,
-      age: parseInt(accountForm.age) || 0,
-      createdAt: new Date().toISOString(),
-      ...(accountForm.role === 'student' ? { parentId: accountForm.parentId, childrenIds: undefined } : {}),
-    };
+  // All users for notification recipient selection
+  const allUsers = useMemo(() => {
+    return storage.getAll(KEYS.USERS).filter(u => u.id !== user?.id);
+  }, [user]);
 
-    // If student, link to parent
-    if (accountForm.role === 'student' && accountForm.parentId) {
-      const parent = storage.findOne(KEYS.USERS, u => u.id === accountForm.parentId);
-      if (parent) {
-        storage.update(KEYS.USERS, parent.id, {
-          childrenIds: [...(parent.childrenIds || []), newUser.id],
-        });
-      }
-    }
+  const filteredUsersForNotif = useMemo(() => {
+    let filtered = allUsers;
+    if (notifRoleFilter) filtered = filtered.filter(u => u.role === notifRoleFilter);
+    if (notifSearch) filtered = filtered.filter(u =>
+      (u.nameAr || u.name || '').toLowerCase().includes(notifSearch.toLowerCase()) ||
+      (u.nameEn || '').toLowerCase().includes(notifSearch.toLowerCase())
+    );
+    return filtered;
+  }, [allUsers, notifSearch, notifRoleFilter]);
 
-    storage.add(KEYS.USERS, newUser);
-    setShowCreateAccount(false);
-    setAccountForm({ role: 'teacher', name: '', email: '', password: '', gender: 'male', age: '', parentId: '' });
-    showToast(t('common.created'));
+  const toggleRecipient = (uid) => {
+    setSelectedRecipients(prev =>
+      prev.includes(uid) ? prev.filter(id => id !== uid) : [...prev, uid]
+    );
   };
 
   const handleCreateYear = (e) => {
@@ -137,10 +127,21 @@ const AdminDashboard = () => {
   const handleSendNotification = (e) => {
     e.preventDefault();
     if (!notifMsg.trim()) return;
-    sendNotification(notifMsg, user?.name);
+    const recipients = sendToAll ? null : selectedRecipients;
+    sendNotification(notifMsg, user?.name, recipients);
     setNotifMsg('');
+    setSelectedRecipients([]);
+    setSendToAll(true);
+    setNotifSearch('');
+    setNotifRoleFilter('');
     setShowNotifModal(false);
     showToast(t('common.success'));
+  };
+
+  const roleColors = {
+    teacher: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    student: 'bg-brand-green-100 text-brand-green-700 dark:bg-brand-green-900/30 dark:text-brand-green-400',
+    parent: 'bg-brand-gold-100 text-brand-gold-700 dark:bg-brand-gold-900/30 dark:text-brand-gold-400',
   };
 
   return (
@@ -155,7 +156,10 @@ const AdminDashboard = () => {
       {/* Page header */}
       <div className="page-header">
         <h1 className="page-title">{t('admin.dashboard.title')}</h1>
-        <p className="page-subtitle">{formatGregorian(new Date())}</p>
+        <div className="flex flex-col gap-0.5">
+          <p className="text-sm font-medium text-[var(--color-text)]">{formatHijri(today, lang)}</p>
+          <p className="page-subtitle text-xs">{formatGregorian(today, lang)}</p>
+        </div>
       </div>
 
       {/* Stats */}
@@ -199,7 +203,7 @@ const AdminDashboard = () => {
                 return (
                   <div key={cls.id} className="flex items-center justify-between p-2 rounded-lg bg-brand-green-50 dark:bg-brand-green-900/20">
                     <span className="text-sm font-medium text-brand-green-700 dark:text-brand-green-400">{cls.name}</span>
-                    <span className="text-xs text-[var(--color-text-muted)]">{teacher?.name}</span>
+                    <span className="text-xs text-[var(--color-text-muted)]">{teacher?.nameAr || teacher?.name}</span>
                   </div>
                 );
               })}
@@ -235,12 +239,6 @@ const AdminDashboard = () => {
       <div className="card p-5">
         <h3 className="font-semibold text-[var(--color-text)] mb-4">{t('admin.dashboard.quickActions')}</h3>
         <div className="flex flex-wrap gap-3">
-          <button onClick={() => setShowCreateAccount(true)} className="btn-primary">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-            </svg>
-            {t('admin.dashboard.createAccount')}
-          </button>
           <button onClick={() => setShowCreateYear(true)} className="btn-secondary">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -290,61 +288,6 @@ const AdminDashboard = () => {
         )}
       </div>
 
-      {/* Create Account Modal */}
-      <Modal isOpen={showCreateAccount} onClose={() => setShowCreateAccount(false)} title={t('account.create')} size="md"
-        footer={
-          <>
-            <button onClick={() => setShowCreateAccount(false)} className="btn-ghost">{t('common.cancel')}</button>
-            <button form="create-account-form" type="submit" className="btn-primary">{t('common.save')}</button>
-          </>
-        }
-      >
-        <form id="create-account-form" onSubmit={handleCreateAccount} className="space-y-4">
-          <div>
-            <label className="label">{t('account.role')}</label>
-            <select value={accountForm.role} onChange={e => setAccountForm({...accountForm, role: e.target.value})} className="select">
-              <option value="teacher">{t('role.teacher')}</option>
-              <option value="student">{t('role.student')}</option>
-              <option value="parent">{t('role.parent')}</option>
-            </select>
-          </div>
-          <div>
-            <label className="label">{t('account.name')}</label>
-            <input type="text" value={accountForm.name} onChange={e => setAccountForm({...accountForm, name: e.target.value})} className="input" required />
-          </div>
-          <div>
-            <label className="label">{t('account.email')}</label>
-            <input type="email" value={accountForm.email} onChange={e => setAccountForm({...accountForm, email: e.target.value})} className="input" required />
-          </div>
-          <div>
-            <label className="label">{t('account.password')}</label>
-            <input type="password" value={accountForm.password} onChange={e => setAccountForm({...accountForm, password: e.target.value})} className="input" required />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label">{t('common.gender')}</label>
-              <select value={accountForm.gender} onChange={e => setAccountForm({...accountForm, gender: e.target.value})} className="select">
-                <option value="male">{t('gender.male')}</option>
-                <option value="female">{t('gender.female')}</option>
-              </select>
-            </div>
-            <div>
-              <label className="label">{t('common.age')}</label>
-              <input type="number" min="5" max="100" value={accountForm.age} onChange={e => setAccountForm({...accountForm, age: e.target.value})} className="input" />
-            </div>
-          </div>
-          {accountForm.role === 'student' && (
-            <div>
-              <label className="label">{t('account.parent')}</label>
-              <select value={accountForm.parentId} onChange={e => setAccountForm({...accountForm, parentId: e.target.value})} className="select">
-                <option value="">{t('common.select')}</option>
-                {parents.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-            </div>
-          )}
-        </form>
-      </Modal>
-
       {/* Create Year Modal */}
       <Modal isOpen={showCreateYear} onClose={() => setShowCreateYear(false)} title={t('year.create')} size="sm"
         footer={
@@ -371,7 +314,7 @@ const AdminDashboard = () => {
       </Modal>
 
       {/* Notification Modal */}
-      <Modal isOpen={showNotifModal} onClose={() => setShowNotifModal(false)} title={t('notif.send')} size="sm"
+      <Modal isOpen={showNotifModal} onClose={() => setShowNotifModal(false)} title={t('notif.send')} size="md"
         footer={
           <>
             <button onClick={() => setShowNotifModal(false)} className="btn-ghost">{t('common.cancel')}</button>
@@ -385,9 +328,61 @@ const AdminDashboard = () => {
             <textarea
               value={notifMsg}
               onChange={e => setNotifMsg(e.target.value)}
-              className="input min-h-[100px] resize-none"
+              className="input min-h-[80px] resize-none"
               placeholder={t('notif.message')}
             />
+          </div>
+
+          {/* Recipients */}
+          <div>
+            <label className="label">{t('notif.recipients')}</label>
+            <div className="flex items-center gap-3 mb-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={sendToAll} onChange={e => setSendToAll(e.target.checked)} className="w-4 h-4 accent-brand-green-600" />
+                <span className="text-sm text-[var(--color-text)]">{t('notif.sendToAll')}</span>
+              </label>
+            </div>
+
+            {!sendToAll && (
+              <div className="space-y-2">
+                <select value={notifRoleFilter} onChange={e => { setNotifRoleFilter(e.target.value); setSelectedRecipients([]); }} className="select text-sm">
+                  <option value="">{t('notif.allRoles')}</option>
+                  <option value="student">{t('role.student')}</option>
+                  <option value="teacher">{t('role.teacher')}</option>
+                  <option value="parent">{t('role.parent')}</option>
+                </select>
+                <input
+                  type="text"
+                  value={notifSearch}
+                  onChange={e => setNotifSearch(e.target.value)}
+                  placeholder={t('notif.searchUser')}
+                  className="input text-sm"
+                />
+                <div className="max-h-48 overflow-y-auto border border-[var(--color-border)] rounded-xl divide-y divide-[var(--color-border)]">
+                  {filteredUsersForNotif.length === 0 ? (
+                    <p className="text-sm text-center text-[var(--color-text-muted)] py-4">{t('common.noData')}</p>
+                  ) : filteredUsersForNotif.map(u => (
+                    <label key={u.id} className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-brand-green-50 dark:hover:bg-brand-green-900/10">
+                      <input
+                        type="checkbox"
+                        checked={selectedRecipients.includes(u.id)}
+                        onChange={() => toggleRecipient(u.id)}
+                        className="w-4 h-4 accent-brand-green-600"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-[var(--color-text)] truncate">{u.nameAr || u.name}</p>
+                        <p className="text-xs text-[var(--color-text-muted)]">{t(`role.${u.role}`)}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                {selectedRecipients.length > 0 && (
+                  <p className="text-xs text-brand-green-600 font-medium">
+                    {selectedRecipients.length} {t('notif.recipients')}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </Modal>

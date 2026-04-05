@@ -18,10 +18,19 @@ const TeacherMessages = () => {
   const allUsers = storage.getAll(KEYS.USERS);
   const admins = allUsers.filter(u => u.role === 'admin');
   const myStudents = allUsers.filter(u => u.role === 'student' && myClasses.some(c => c.studentIds?.includes(u.id)));
-  const myParents = myStudents.map(s => {
-    const parent = allUsers.find(p => p.id === s.parentId);
-    return parent ? { ...parent, childName: s.name, childId: s.id } : null;
-  }).filter(Boolean);
+  const myParents = (() => {
+    const parentMap = new Map();
+    myStudents.forEach(s => {
+      const parent = allUsers.find(p => p.id === s.parentId);
+      if (!parent) return;
+      if (parentMap.has(parent.id)) {
+        parentMap.get(parent.id).childNames.push(s.nameAr || s.name);
+      } else {
+        parentMap.set(parent.id, { ...parent, childNames: [s.nameAr || s.name] });
+      }
+    });
+    return Array.from(parentMap.values());
+  })();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -85,9 +94,9 @@ const TeacherMessages = () => {
           <div>
             <p className="text-xs font-semibold text-[var(--color-text-muted)] px-2 py-1 uppercase">{t('role.admin')}</p>
             {admins.map(a => (
-              <ChatButton key={a.id} onClick={() => openPrivateChat(a.id, a.name)} isActive={activeChatId === getChatId(a.id)}>
-                <div className="w-8 h-8 rounded-xl bg-purple-600 flex items-center justify-center text-white font-bold text-sm">{a.name.charAt(0)}</div>
-                <span className="text-sm font-medium truncate">{a.name}</span>
+              <ChatButton key={a.id} onClick={() => openPrivateChat(a.id, a.nameAr || a.name)} isActive={activeChatId === getChatId(a.id)}>
+                <div className="w-8 h-8 rounded-xl bg-purple-600 flex items-center justify-center text-white font-bold text-sm">{(a.nameAr || a.name || '?').charAt(0)}</div>
+                <span className="text-sm font-medium truncate">{a.nameAr || a.name}</span>
               </ChatButton>
             ))}
           </div>
@@ -110,9 +119,9 @@ const TeacherMessages = () => {
           <div>
             <p className="text-xs font-semibold text-[var(--color-text-muted)] px-2 py-1 uppercase">{t('role.student')}</p>
             {myStudents.map(s => (
-              <ChatButton key={s.id} onClick={() => openPrivateChat(s.id, s.name)} isActive={activeChatId === getChatId(s.id)}>
-                <div className="w-8 h-8 rounded-xl bg-brand-green-500 flex items-center justify-center text-white font-bold text-sm">{s.name.charAt(0)}</div>
-                <span className="text-sm font-medium truncate">{s.name}</span>
+              <ChatButton key={s.id} onClick={() => openPrivateChat(s.id, s.nameAr || s.name)} isActive={activeChatId === getChatId(s.id)}>
+                <div className="w-8 h-8 rounded-xl bg-brand-green-500 flex items-center justify-center text-white font-bold text-sm">{(s.nameAr || s.name || '?').charAt(0)}</div>
+                <span className="text-sm font-medium truncate">{s.nameAr || s.name}</span>
               </ChatButton>
             ))}
           </div>
@@ -121,11 +130,11 @@ const TeacherMessages = () => {
           <div>
             <p className="text-xs font-semibold text-[var(--color-text-muted)] px-2 py-1 uppercase">{t('role.parent')}</p>
             {myParents.map(p => (
-              <ChatButton key={`${p.id}_${p.childId}`} onClick={() => openPrivateChat(p.id, `${p.name} (${p.childName})`)} isActive={activeChatId === getChatId(p.id)}>
-                <div className="w-8 h-8 rounded-xl bg-brand-gold-500 flex items-center justify-center text-white font-bold text-sm">{p.name.charAt(0)}</div>
+              <ChatButton key={p.id} onClick={() => openPrivateChat(p.id, p.nameAr || p.name)} isActive={activeChatId === getChatId(p.id)}>
+                <div className="w-8 h-8 rounded-xl bg-brand-gold-500 flex items-center justify-center text-white font-bold text-sm">{(p.nameAr || p.name || '?').charAt(0)}</div>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{p.name}</p>
-                  <p className="text-xs text-[var(--color-text-muted)] truncate">Re: {p.childName}</p>
+                  <p className="text-sm font-medium truncate">{p.nameAr || p.name}</p>
+                  <p className="text-xs text-[var(--color-text-muted)] truncate">{p.childNames.join(', ')}</p>
                 </div>
               </ChatButton>
             ))}

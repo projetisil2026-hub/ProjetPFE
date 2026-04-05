@@ -10,12 +10,17 @@ const ar = {
   'auth.login': 'تسجيل الدخول',
   'auth.loginTo': 'تسجيل الدخول إلى حسابك',
   'auth.email': 'البريد الإلكتروني',
+  'auth.username': 'اسم المستخدم',
+  'auth.usernameOrEmail': 'اسم المستخدم أو البريد الإلكتروني',
   'auth.password': 'كلمة المرور',
+  'auth.showPassword': 'إظهار كلمة المرور',
+  'auth.hidePassword': 'إخفاء كلمة المرور',
   'auth.loginBtn': 'دخول',
   'auth.logout': 'تسجيل الخروج',
   'auth.welcomeBack': 'مرحباً بعودتك',
-  'auth.loginFailed': 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
+  'auth.loginFailed': 'اسم المستخدم أو كلمة المرور غير صحيحة',
   'auth.selectRoleFirst': 'يرجى اختيار الدور أولاً',
+  'auth.changeRole': 'تغيير الدور',
 
   // Roles
   'role.admin': 'المدير',
@@ -38,8 +43,13 @@ const ar = {
   'nav.messages': 'الرسائل',
   'nav.notifications': 'الإشعارات',
   'nav.settings': 'الإعدادات',
+  'nav.parents': 'أولياء الأمور',
 
   // Common
+  'common.role': 'الدور',
+  'common.schoolName': 'اسم المدرسة',
+  'common.country': 'الدولة',
+  'common.region': 'المنطقة',
   'common.save': 'حفظ',
   'common.cancel': 'إلغاء',
   'common.edit': 'تعديل',
@@ -155,17 +165,33 @@ const ar = {
   'account.create': 'إنشاء حساب جديد',
   'account.role': 'نوع الحساب',
   'account.name': 'الاسم الكامل',
+  'account.nameAr': 'الاسم بالعربية',
+  'account.nameEn': 'الاسم بالإنجليزية',
+  'account.username': 'اسم المستخدم',
   'account.email': 'البريد الإلكتروني',
   'account.password': 'كلمة المرور',
+  'account.schoolName': 'اسم المدرسة',
+  'account.phone': 'رقم الهاتف',
   'account.gender': 'الجنس',
   'account.age': 'العمر',
   'account.parent': 'ولي الأمر',
+  'account.guardian': 'ولي الأمر',
   'account.children': 'الأبناء',
   'account.assignClass': 'تعيين في حلقة',
+  'account.class': 'الحلقة',
+  'account.hizbMemorized': 'الحزب المحفوظ',
+  'account.verificationCode': 'كود التحقق (6 أرقام)',
+  'account.verifyEmail': 'تحقق من البريد الإلكتروني',
+  'account.sendCode': 'إرسال الكود',
+  'account.verifyCode': 'تحقق من الكود',
+  'account.pendingActivation': 'يجب تفعيل حسابك عن طريق التواصل مع إدارة المنصة عبر البريد الإلكتروني المُرفَق',
+  'account.register': 'تسجيل مدرسة جديدة',
+  'account.registerDesc': 'أنشئ حسابك للبدء في إدارة مدرستك القرآنية',
 
   // Students
   'students.title': 'الطلاب',
   'students.add': 'إضافة طالب',
+  'students.edit': 'تعديل الطالب',
   'students.search': 'البحث بالاسم...',
   'students.filterAge': 'تصفية حسب العمر',
   'students.filterClass': 'تصفية حسب الحلقة',
@@ -176,14 +202,37 @@ const ar = {
   'students.progress': 'تقدم الحزب',
   'students.class': 'الحلقة',
   'students.parent': 'ولي الأمر',
+  'students.nameAr': 'الاسم بالعربية',
+  'students.nameEn': 'الاسم بالإنجليزية',
+  'students.guardian': 'ولي الأمر',
+  'students.hizbMemorized': 'الحزب المحفوظ (ابتداءً)',
+  'students.phone': 'رقم الهاتف',
+  'students.username': 'اسم المستخدم',
+  'students.parentPhone': 'هاتف ولي الأمر',
+
+  // Parents
+  'parents.title': 'أولياء الأمور',
+  'parents.add': 'إضافة ولي أمر',
+  'parents.edit': 'تعديل ولي الأمر',
+  'parents.search': 'البحث بالاسم...',
+  'parents.nameAr': 'الاسم بالعربية',
+  'parents.nameEn': 'الاسم بالإنجليزية',
+  'parents.phone': 'رقم الهاتف',
+  'parents.children': 'الأبناء',
+  'parents.noChildren': 'لا أبناء مسجلين',
 
   // Teachers
   'teachers.title': 'المعلمون',
   'teachers.add': 'إضافة معلم',
+  'teachers.edit': 'تعديل المعلم',
   'teachers.search': 'البحث بالاسم...',
   'teachers.filterGender': 'تصفية حسب الجنس',
   'teachers.classes': 'الحلقات',
   'teachers.noClasses': 'لا توجد حلقات معيّنة',
+  'teachers.nameAr': 'الاسم بالعربية',
+  'teachers.nameEn': 'الاسم بالإنجليزية',
+  'teachers.phone': 'رقم الهاتف',
+  'teachers.username': 'اسم المستخدم',
 
   // Classes
   'classes.title': 'الحلقات',
@@ -213,6 +262,8 @@ const ar = {
   'prayer.after_isha': 'بعد العشاء',
 
   // Attendance
+  'attendance.day': 'اليوم',
+  'attendance.filterDay': 'تصفية حسب اليوم',
   'attendance.title': 'الحضور',
   'attendance.record': 'تسجيل الحضور',
   'attendance.filterClass': 'تصفية حسب الحلقة',
@@ -230,6 +281,9 @@ const ar = {
   'attendance.filterMonth': 'تصفية حسب الشهر',
   'attendance.filterYear': 'تصفية حسب السنة',
   'attendance.noRecords': 'لا توجد سجلات حضور',
+  'attendance.hijriYear': 'السنة الهجرية',
+  'attendance.hijriMonth': 'الشهر الهجري',
+  'attendance.hijriDay': 'اليوم الهجري',
 
   // Memorization
   'memo.title': 'التسميع',
@@ -256,6 +310,7 @@ const ar = {
   'reports.period': 'الفترة',
   'reports.monthly': 'شهري',
   'reports.yearly': 'سنوي',
+  'reports.academicSeason': 'الموسم الدراسي',
   'reports.classComparison': 'المقارنة الشهرية بين الحلقات',
   'reports.weakestClass': 'الحلقة الأضعف',
   'reports.studentRanking': 'ترتيب الطلاب',
@@ -271,6 +326,11 @@ const ar = {
   'reports.attendanceDiscipline': 'الحضور والانضباط',
   'reports.teacherNotes': 'ملاحظات المعلم الشهرية',
   'reports.endOfMonth': 'التصدير متاح في نهاية الشهر',
+  'reports.school': 'المدرسة',
+  'reports.country': 'الدولة',
+  'reports.region': 'المنطقة',
+  'reports.teacher': 'المعلم',
+  'reports.monthlyChart': 'مخطط التقدم الشهري',
 
   // Notifications
   'notif.title': 'الإشعارات',
@@ -282,8 +342,15 @@ const ar = {
   'notif.noNotifs': 'لا توجد إشعارات',
   'notif.new': 'جديد',
   'notif.from': 'من',
+  'notif.recipients': 'المستلمون',
+  'notif.selectUsers': 'اختر المستخدمين',
+  'notif.sendToAll': 'إرسال للجميع',
+  'notif.searchUser': 'ابحث عن مستخدم...',
+  'notif.filterRole': 'تصفية حسب النوع',
+  'notif.allRoles': 'جميع الأنواع',
 
   // Messages
+  'msg.searchTeacher': 'البحث عن معلم...',
   'msg.title': 'الرسائل',
   'msg.private': 'خاص',
   'msg.group': 'مجموعة',
@@ -304,6 +371,7 @@ const ar = {
   // Teacher Dashboard
   'teacher.dashboard.title': 'رئيستي',
   'teacher.dashboard.sessions': 'إجمالي الجلسات',
+  'teacher.dashboard.totalStudents': 'إجمالي الطلاب',
   'teacher.dashboard.schedule': 'جدول الحلقة',
   'teacher.dashboard.myClasses': 'حلقاتي',
 
@@ -320,6 +388,23 @@ const ar = {
   'parent.dashboard.selectChild': 'اختر الطفل',
   'parent.dashboard.childSchedule': 'جدول الطفل',
 
+  // Settings
+  'settings.title': 'الإعدادات',
+  'settings.accountInfo': 'معلومات الحساب',
+  'settings.schoolInfo': 'معلومات المدرسة',
+  'settings.resetData': 'إعادة تعيين البيانات',
+  'settings.createSchool': 'إنشاء مدرسة جديدة',
+  'settings.schoolName': 'اسم المدرسة',
+  'settings.country': 'الدولة',
+  'settings.region': 'المنطقة',
+  'settings.confirmReset': 'هل أنت متأكد من إعادة تعيين جميع البيانات؟ لا يمكن التراجع عن هذا الإجراء.',
+  'settings.resetWarning': 'سيتم حذف جميع البيانات بشكل نهائي',
+  'settings.saveSchool': 'حفظ معلومات المدرسة',
+  'settings.darkMode': 'الوضع المظلم',
+  'settings.lightMode': 'الوضع الفاتح',
+  'settings.language': 'اللغة',
+  'settings.theme': 'المظهر',
+
   // PDF
   'pdf.generatedBy': 'صُنع بواسطة تَتَبُعْ',
   'pdf.date': 'التاريخ',
@@ -327,6 +412,11 @@ const ar = {
   'pdf.attendanceReport': 'تقرير الحضور',
   'pdf.memorReport': 'تقرير التسميع',
   'pdf.progressReport': 'تقرير التقدم',
+  'pdf.school': 'المدرسة',
+  'pdf.country': 'الدولة',
+  'pdf.region': 'المنطقة',
+  'pdf.teacher': 'المعلم',
+  'pdf.academicSeason': 'الموسم الدراسي',
 
   // Hijri months
   'hijri.muharram': 'محرم',

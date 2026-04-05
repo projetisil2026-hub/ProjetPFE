@@ -19,7 +19,7 @@ const Login = () => {
   const { theme, toggleTheme } = useTheme();
 
   const [selectedRole, setSelectedRole] = useState('');
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -28,12 +28,6 @@ const Login = () => {
   useEffect(() => {
     const role = sessionStorage.getItem('selectedRole');
     if (role) setSelectedRole(role);
-
-    // Auto-fill demo
-    if (role === 'admin') setEmail('admin@tatabu.com');
-    else if (role === 'teacher') setEmail('teacher1@tatabu.com');
-    else if (role === 'student') setEmail('student1@tatabu.com');
-    else if (role === 'parent') setEmail('parent1@tatabu.com');
   }, []);
 
   useEffect(() => {
@@ -52,7 +46,8 @@ const Login = () => {
     setLoading(true);
 
     setTimeout(() => {
-      const result = login(email, password, selectedRole);
+      // Support both email and username login
+      const result = login(identifier, password, selectedRole);
       if (result.success) {
         navigate(`/${result.user.role}/dashboard`, { replace: true });
       } else {
@@ -60,6 +55,11 @@ const Login = () => {
       }
       setLoading(false);
     }, 600);
+  };
+
+  const handleChangeRole = () => {
+    sessionStorage.removeItem('selectedRole');
+    navigate('/');
   };
 
   const rc = roleColors[selectedRole] || roleColors.admin;
@@ -81,9 +81,6 @@ const Login = () => {
         <Logo size="lg" className="justify-center mb-8" />
 
         <div className="text-center text-white">
-          <p className="text-4xl font-bold mb-2" style={{ fontFamily: "'Amiri', serif" }}>
-            بسم الله الرحمن الرحيم
-          </p>
           <p className="text-lg opacity-90 mt-4">{t('app.tagline')}</p>
         </div>
 
@@ -97,13 +94,13 @@ const Login = () => {
         {/* Top bar */}
         <div className="flex justify-between items-center p-4">
           <button
-            onClick={() => navigate('/')}
+            onClick={handleChangeRole}
             className="flex items-center gap-2 text-sm text-[var(--color-text-muted)] hover:text-brand-green-600 transition-colors"
           >
-            <svg className={`w-4 h-4 ${lang === 'ar' ? 'rtl-flip' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className={`w-4 h-4 ${lang === 'ar' ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            {t('common.back')}
+            {t('auth.changeRole')}
           </button>
           <div className="flex gap-2">
             <button onClick={switchLang} className="px-3 py-1.5 rounded-xl border border-[var(--color-border)] text-sm font-medium text-[var(--color-text-muted)] hover:text-brand-green-600 transition-colors">
@@ -129,42 +126,51 @@ const Login = () => {
                 <div className="mt-2 flex items-center gap-2">
                   <span className="text-[var(--color-text-muted)] text-sm">{t('common.role')}:</span>
                   <span className={`badge ${rc.badge}`}>{t(`role.${selectedRole}`)}</span>
+                  <button
+                    type="button"
+                    onClick={handleChangeRole}
+                    className="text-xs text-brand-green-600 hover:underline"
+                  >
+                    {t('auth.changeRole')}
+                  </button>
                 </div>
               )}
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Role selector */}
-              <div>
-                <label className="label">{t('account.role')}</label>
-                <select
-                  value={selectedRole}
-                  onChange={(e) => {
-                    setSelectedRole(e.target.value);
-                    sessionStorage.setItem('selectedRole', e.target.value);
-                  }}
-                  className="select"
-                  required
-                >
-                  <option value="">{t('common.select')}</option>
-                  <option value="admin">{t('role.admin')}</option>
-                  <option value="teacher">{t('role.teacher')}</option>
-                  <option value="student">{t('role.student')}</option>
-                  <option value="parent">{t('role.parent')}</option>
-                </select>
-              </div>
+              {/* Role selector (shown if no role pre-selected) */}
+              {!selectedRole && (
+                <div>
+                  <label className="label">{t('account.role')}</label>
+                  <select
+                    value={selectedRole}
+                    onChange={(e) => {
+                      setSelectedRole(e.target.value);
+                      sessionStorage.setItem('selectedRole', e.target.value);
+                    }}
+                    className="select"
+                    required
+                  >
+                    <option value="">{t('common.select')}</option>
+                    <option value="admin">{t('role.admin')}</option>
+                    <option value="teacher">{t('role.teacher')}</option>
+                    <option value="student">{t('role.student')}</option>
+                    <option value="parent">{t('role.parent')}</option>
+                  </select>
+                </div>
+              )}
 
-              {/* Email */}
+              {/* Username or Email */}
               <div>
-                <label className="label">{t('auth.email')}</label>
+                <label className="label">{t('auth.usernameOrEmail')}</label>
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  type="text"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
                   className="input"
-                  placeholder="you@example.com"
+                  placeholder={t('auth.usernameOrEmail')}
                   required
-                  autoComplete="email"
+                  autoComplete="username"
                 />
               </div>
 
@@ -176,7 +182,7 @@ const Login = () => {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="input pr-12"
+                    className={`input ${lang === 'ar' ? 'pl-12' : 'pr-12'}`}
                     placeholder="••••••••"
                     required
                     autoComplete="current-password"
@@ -185,6 +191,7 @@ const Login = () => {
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className={`absolute top-1/2 -translate-y-1/2 ${lang === 'ar' ? 'left-3' : 'right-3'} text-[var(--color-text-muted)] hover:text-brand-green-600`}
+                    title={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
                   >
                     {showPassword ? (
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -224,11 +231,6 @@ const Login = () => {
                 ) : t('auth.loginBtn')}
               </button>
             </form>
-
-            {/* Quick fill hint */}
-            <p className="text-center text-xs text-[var(--color-text-muted)] mt-6">
-              Password format: <span className="text-brand-green-600 font-medium">[Role]123!</span> (e.g. Admin123!, Teacher123!)
-            </p>
           </div>
         </div>
       </div>

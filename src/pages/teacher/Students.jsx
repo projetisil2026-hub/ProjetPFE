@@ -3,8 +3,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { storage, KEYS } from '../../utils/storage';
 import { calcTotalHizbProgress } from '../../utils/quranData';
-import { generateId } from '../../utils/auth';
-import { todayISO } from '../../utils/hijriDate';
 
 const evalColors = {
   excellent: 'bg-brand-green-100 text-brand-green-700 dark:bg-brand-green-900/30 dark:text-brand-green-400',
@@ -18,13 +16,6 @@ const TeacherStudents = () => {
   const { t } = useLanguage();
   const [search, setSearch] = useState('');
   const [filterAge, setFilterAge] = useState('');
-  const [attendanceClass, setAttendanceClass] = useState('');
-  const [attendanceDate, setAttendanceDate] = useState(todayISO());
-  const [attendanceMap, setAttendanceMap] = useState({});
-  const [toast, setToast] = useState(null);
-  const [showAttendance, setShowAttendance] = useState(false);
-
-  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
   const myClasses = useMemo(() => {
     return storage.getAll(KEYS.CLASSES).filter(c => c.teacherId === user?.id);
@@ -37,7 +28,10 @@ const TeacherStudents = () => {
     const classStudentIds = new Set(myClasses.flatMap(c => c.studentIds || []));
     let all = allUsers.filter(u => u.role === 'student' && classStudentIds.has(u.id));
 
-    if (search) all = all.filter(s => s.name.toLowerCase().includes(search.toLowerCase()));
+    if (search) all = all.filter(s =>
+      (s.nameAr || s.name || '').toLowerCase().includes(search.toLowerCase()) ||
+      (s.nameEn || '').toLowerCase().includes(search.toLowerCase())
+    );
     if (filterAge) all = all.filter(s => s.age === parseInt(filterAge));
 
     return all.map(s => {
@@ -49,122 +43,12 @@ const TeacherStudents = () => {
     });
   }, [search, filterAge, myClasses, allMemo, allUsers]);
 
-  const studentsForAttendance = useMemo(() => {
-    if (!attendanceClass) return [];
-    const cls = myClasses.find(c => c.id === attendanceClass);
-    return allUsers.filter(u => cls?.studentIds?.includes(u.id));
-  }, [attendanceClass, myClasses, allUsers]);
-
-  // Initialize attendance map when class/date changes
-  const initAttendance = (classId, date) => {
-    const existing = storage.getAll(KEYS.ATTENDANCE).filter(a => a.classId === classId && a.date === date);
-    const map = {};
-    const cls = myClasses.find(c => c.id === classId);
-    cls?.studentIds?.forEach(id => {
-      const record = existing.find(a => a.studentId === id);
-      map[id] = record?.status || 'present';
-    });
-    setAttendanceMap(map);
-  };
-
-  const handleClassChange = (classId) => {
-    setAttendanceClass(classId);
-    if (classId) initAttendance(classId, attendanceDate);
-  };
-
-  const handleDateChange = (date) => {
-    setAttendanceDate(date);
-    if (attendanceClass) initAttendance(attendanceClass, date);
-  };
-
-  const handleSaveAttendance = () => {
-    if (!attendanceClass || !attendanceDate) return;
-    const cls = myClasses.find(c => c.id === attendanceClass);
-    const activeYear = storage.findOne(KEYS.ACADEMIC_YEARS, y => y.isActive);
-
-    // Remove existing records for this class/date
-    const existing = storage.getAll(KEYS.ATTENDANCE).filter(a => !(a.classId === attendanceClass && a.date === attendanceDate));
-    storage.set(KEYS.ATTENDANCE, existing);
-
-    // Add new records
-    cls?.studentIds?.forEach(studentId => {
-      storage.add(KEYS.ATTENDANCE, {
-        id: generateId(),
-        studentId,
-        classId: attendanceClass,
-        academicYearId: activeYear?.id || '',
-        date: attendanceDate,
-        status: attendanceMap[studentId] || 'present',
-        createdAt: new Date().toISOString(),
-      });
-    });
-
-    showToast(t('common.success'));
-    setShowAttendance(false);
-  };
-
   return (
     <div className="space-y-6">
-      {toast && <div className="fixed top-20 right-4 z-50 px-4 py-2.5 rounded-xl shadow-lg text-white text-sm bg-brand-green-600">{toast}</div>}
-
-      <div className="page-header flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="page-title">{t('students.title')}</h1>
-          <p className="page-subtitle">{students.length} {t('role.student')}</p>
-        </div>
-        <button onClick={() => setShowAttendance(!showAttendance)} className="btn-primary">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
-          {t('attendance.record')}
-        </button>
+      <div className="page-header">
+        <h1 className="page-title">{t('students.title')}</h1>
+        <p className="page-subtitle">{students.length} {t('role.student')}</p>
       </div>
-
-      {/* Attendance panel */}
-      {showAttendance && (
-        <div className="card p-5 space-y-4 border-2 border-brand-green-300 dark:border-brand-green-700">
-          <h3 className="font-semibold text-brand-green-700 dark:text-brand-green-400">{t('attendance.record')}</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="label">{t('common.class')}</label>
-              <select value={attendanceClass} onChange={e => handleClassChange(e.target.value)} className="select">
-                <option value="">{t('common.select')}</option>
-                {myClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="label">{t('attendance.date')}</label>
-              <input type="date" value={attendanceDate} onChange={e => handleDateChange(e.target.value)} className="input" />
-            </div>
-          </div>
-
-          {studentsForAttendance.length > 0 && (
-            <div className="space-y-2">
-              {studentsForAttendance.map(s => (
-                <div key={s.id} className="flex items-center justify-between p-3 rounded-xl border border-[var(--color-border)]">
-                  <span className="font-medium">{s.name}</span>
-                  <div className="flex gap-2">
-                    {['present','absent'].map(status => (
-                      <button
-                        key={status}
-                        onClick={() => setAttendanceMap(m => ({ ...m, [s.id]: status }))}
-                        className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                          attendanceMap[s.id] === status
-                            ? status === 'present' ? 'bg-brand-green-600 text-white' : 'bg-red-500 text-white'
-                            : 'border border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-brand-green-300'
-                        }`}
-                      >
-                        {t(`attend.${status}`)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-              <div className="flex justify-end pt-2">
-                <button onClick={handleSaveAttendance} className="btn-primary">{t('attendance.save')}</button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Filters */}
       <div className="card p-4">
@@ -194,14 +78,19 @@ const TeacherStudents = () => {
               <tr key={s.id} className="table-row">
                 <td className="table-td">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-brand-green-600 flex items-center justify-center text-white font-bold text-sm">{s.name.charAt(0)}</div>
-                    <span className="font-medium">{s.name}</span>
+                    <div className="w-8 h-8 rounded-xl bg-brand-green-600 flex items-center justify-center text-white font-bold text-sm">
+                      {(s.nameAr || s.name || '?').charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-medium">{s.nameAr || s.name}</p>
+                      {s.nameEn && <p className="text-xs text-[var(--color-text-muted)]">{s.nameEn}</p>}
+                    </div>
                   </div>
                 </td>
                 <td className="table-td text-[var(--color-text-muted)]">{s.class?.name || '—'}</td>
                 <td className="table-td">{s.age}</td>
                 <td className="table-td">
-                  <span className={`badge ${s.gender === 'male' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}`}>
+                  <span className={`badge ${s.gender === 'male' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400'}`}>
                     {t(`gender.${s.gender}`)}
                   </span>
                 </td>

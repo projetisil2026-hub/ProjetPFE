@@ -3,13 +3,13 @@
  * Using the Umm al-Qura algorithm approximation
  */
 
-const HIJRI_MONTHS_AR = [
+export const HIJRI_MONTHS_AR = [
   'محرم', 'صفر', 'ربيع الأول', 'ربيع الثاني',
   'جمادى الأولى', 'جمادى الآخرة', 'رجب', 'شعبان',
   'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة',
 ];
 
-const HIJRI_MONTHS_EN = [
+export const HIJRI_MONTHS_EN = [
   'Muharram', 'Safar', "Rabi' al-Awwal", "Rabi' al-Thani",
   'Jumada al-Ula', 'Jumada al-Akhirah', 'Rajab', "Sha'ban",
   'Ramadan', 'Shawwal', "Dhu al-Qi'dah", 'Dhu al-Hijjah',
@@ -107,4 +107,31 @@ export const formatTime = (date) => {
  */
 export const currentTime = () => formatTime(new Date());
 
-export default { gregorianToHijri, formatHijri, formatGregorian, formatBothDates, todayISO, formatTime, currentTime };
+/**
+ * Convert Hijri date to Gregorian ISO string (YYYY-MM-DD)
+ */
+export const hijriToGregorian = (hYear, hMonth, hDay) => {
+  const jd = Math.floor((11 * hYear + 3) / 30)
+    + 354 * hYear
+    + 30 * hMonth
+    - Math.floor((hMonth - 1) / 2)
+    + hDay
+    + 1948440
+    - 385;
+
+  let l = jd + 68569;
+  const n = Math.floor((4 * l) / 146097);
+  l = l - Math.floor((146097 * n + 3) / 4);
+  const i = Math.floor((4000 * (l + 1)) / 1461001);
+  l = l - Math.floor((1461 * i) / 4) + 31;
+  const j = Math.floor((80 * l) / 2447);
+  const d = l - Math.floor((2447 * j) / 80);
+  l = Math.floor(j / 11);
+  const m = j + 2 - 12 * l;
+  const y = 100 * (n - 49) + i + l;
+
+  const pad = v => String(v).padStart(2, '0');
+  return `${y}-${pad(m)}-${pad(d)}`;
+};
+
+export default { gregorianToHijri, hijriToGregorian, formatHijri, formatGregorian, formatBothDates, todayISO, formatTime, currentTime };

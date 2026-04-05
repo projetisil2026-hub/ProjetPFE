@@ -5,6 +5,7 @@ import { storage, KEYS } from '../../utils/storage';
 import { formatHijri, formatGregorian } from '../../utils/hijriDate';
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
+const DAY_NAMES = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
 
 const ParentAttendance = () => {
   const { user } = useAuth();
@@ -19,7 +20,6 @@ const ParentAttendance = () => {
 
   const selectedChild = children.find(c => c.id === selectedChildId) || children[0];
   const academicYears = storage.getAll(KEYS.ACADEMIC_YEARS);
-  const myClass = selectedChild ? storage.findOne(KEYS.CLASSES, c => c.studentIds?.includes(selectedChild.id)) : null;
 
   const records = useMemo(() => {
     if (!selectedChild) return [];
@@ -47,7 +47,7 @@ const ParentAttendance = () => {
           {children.map(c => (
             <button key={c.id} onClick={() => setSelectedChildId(c.id)}
               className={`px-4 py-2 rounded-xl border-2 text-sm font-medium transition-all ${selectedChild?.id === c.id ? 'border-brand-green-600 bg-brand-green-50 dark:bg-brand-green-900/20 text-brand-green-700' : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-brand-green-300'}`}>
-              {c.name}
+              {c.nameAr || c.name}
             </button>
           ))}
         </div>
@@ -74,11 +74,11 @@ const ParentAttendance = () => {
           <div className="card p-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md">
               <select value={filterMonth} onChange={e => setFilterMonth(e.target.value)} className="select">
-                <option value="">{t('common.all')} {t('common.month')}</option>
+                <option value="">{t('attendance.filterMonth')}</option>
                 {MONTHS.map(m => <option key={m} value={m}>{t(`month.${m}`)}</option>)}
               </select>
               <select value={filterYearId} onChange={e => setFilterYearId(e.target.value)} className="select">
-                <option value="">{t('common.all')} {t('year.academic')}</option>
+                <option value="">{t('attendance.filterYear')}</option>
                 {academicYears.map(y => <option key={y.id} value={y.id}>{y.name}</option>)}
               </select>
             </div>
@@ -89,21 +89,23 @@ const ParentAttendance = () => {
             <table className="w-full">
               <thead className="table-head">
                 <tr>
-                  <th className="table-th">{t('attendance.date')}</th>
+                  <th className="table-th">{t('attendance.day')}</th>
                   <th className="table-th">{t('attendance.hijriDate')}</th>
+                  <th className="table-th">{t('attendance.date')}</th>
                   <th className="table-th">{t('common.status')}</th>
                 </tr>
               </thead>
               <tbody>
                 {records.length === 0 ? (
-                  <tr><td colSpan={3} className="table-td text-center text-[var(--color-text-muted)] py-8">{t('attendance.noRecords')}</td></tr>
+                  <tr><td colSpan={4} className="table-td text-center text-[var(--color-text-muted)] py-8">{t('attendance.noRecords')}</td></tr>
                 ) : records.map(r => (
                   <tr key={r.id} className="table-row">
-                    <td className="table-td">{r.date}</td>
-                    <td className="table-td text-xs text-[var(--color-text-muted)]">{formatHijri(r.date, lang)}</td>
+                    <td className="table-td font-medium">{t(`day.${DAY_NAMES[new Date(r.date).getDay()]}`)}</td>
+                    <td className="table-td font-medium">{formatHijri(r.date, lang)}</td>
+                    <td className="table-td text-xs text-[var(--color-text-muted)]">{formatGregorian(r.date, lang)}</td>
                     <td className="table-td">
-                      <span className={`badge ${r.status === 'present' ? 'bg-brand-green-100 text-brand-green-700' : 'bg-red-100 text-red-700'}`}>
-                        {r.status === 'present' ? '✓' : '✗'} {t(`attend.${r.status}`)}
+                      <span className={`badge ${r.status === 'present' ? 'bg-brand-green-100 text-brand-green-700 dark:bg-brand-green-900/30 dark:text-brand-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
+                        {t(`attend.${r.status}`)}
                       </span>
                     </td>
                   </tr>

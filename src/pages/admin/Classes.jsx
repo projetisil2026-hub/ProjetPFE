@@ -53,7 +53,7 @@ const AdminClasses = () => {
     setForm({
       name: cls.name,
       teacherId: cls.teacherId,
-      academicYearId: cls.academicYearId,
+      academicYearId: activeYear?.id || cls.academicYearId,
       sessionsPerWeek: cls.sessionsPerWeek,
       schedule: cls.schedule || [],
       studentIds: cls.studentIds || [],
@@ -160,8 +160,10 @@ const AdminClasses = () => {
 
             {cls.teacher && (
               <div className="flex items-center gap-2 text-sm">
-                <div className="w-6 h-6 rounded-lg bg-blue-600 flex items-center justify-center text-white text-xs font-bold">{cls.teacher.name.charAt(0)}</div>
-                <span className="text-[var(--color-text-muted)]">{cls.teacher.name}</span>
+                <div className="w-6 h-6 rounded-lg bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
+                  {(cls.teacher.nameAr || cls.teacher.name || '?').charAt(0)}
+                </div>
+                <span className="text-[var(--color-text-muted)]">{cls.teacher.nameAr || cls.teacher.name}</span>
               </div>
             )}
 
@@ -212,15 +214,15 @@ const AdminClasses = () => {
               <label className="label">{t('classes.teacher')}</label>
               <select value={form.teacherId} onChange={e => setForm({...form, teacherId: e.target.value})} className="select" required>
                 <option value="">{t('common.select')}</option>
-                {teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                {teachers.map(t => <option key={t.id} value={t.id}>{t.nameAr || t.name}</option>)}
               </select>
             </div>
             <div>
               <label className="label">{t('classes.academicYear')}</label>
-              <select value={form.academicYearId} onChange={e => setForm({...form, academicYearId: e.target.value})} className="select" required>
-                <option value="">{t('common.select')}</option>
-                {academicYears.map(y => <option key={y.id} value={y.id}>{y.name}{y.isActive ? ' ★' : ''}</option>)}
-              </select>
+              <div className="input flex items-center gap-2 bg-[var(--color-border)] cursor-not-allowed opacity-80">
+                <span className="text-[var(--color-text)]">{activeYear?.name || t('year.noYears')}</span>
+                {activeYear && <span className="badge bg-brand-green-100 text-brand-green-700 dark:bg-brand-green-900/30 dark:text-brand-green-400 text-xs ms-auto">{t('year.active')}</span>}
+              </div>
             </div>
           </div>
 
@@ -258,19 +260,6 @@ const AdminClasses = () => {
             </div>
           </div>
 
-          {/* Assign Students */}
-          <div>
-            <label className="label">{t('classes.students')}</label>
-            <div className="max-h-40 overflow-y-auto space-y-1 p-2 rounded-xl border border-[var(--color-border)]">
-              {availableStudents.map(s => (
-                <label key={s.id} className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-brand-green-50 dark:hover:bg-brand-green-900/10 cursor-pointer">
-                  <input type="checkbox" checked={form.studentIds.includes(s.id)} onChange={() => toggleStudent(s.id)} className="w-4 h-4 accent-brand-green-600" />
-                  <span className="text-sm">{s.name}</span>
-                </label>
-              ))}
-              {availableStudents.length === 0 && <p className="text-xs text-[var(--color-text-muted)] p-2">{t('common.noData')}</p>}
-            </div>
-          </div>
         </form>
       </Modal>
 

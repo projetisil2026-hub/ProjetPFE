@@ -21,6 +21,8 @@ import AdminAttendance from './pages/admin/Attendance';
 import AdminMemorization from './pages/admin/Memorization';
 import AdminReports from './pages/admin/Reports';
 import AdminMessages from './pages/admin/Messages';
+import AdminSettings from './pages/admin/Settings';
+import AdminParents from './pages/admin/Parents';
 
 // Teacher pages
 import TeacherDashboard from './pages/teacher/Dashboard';
@@ -29,12 +31,14 @@ import TeacherAttendance from './pages/teacher/Attendance';
 import TeacherMemorization from './pages/teacher/Memorization';
 import TeacherReports from './pages/teacher/Reports';
 import TeacherMessages from './pages/teacher/Messages';
+import TeacherSettings from './pages/teacher/Settings';
 
 // Student pages
 import StudentDashboard from './pages/student/Dashboard';
 import StudentAttendance from './pages/student/Attendance';
 import StudentMemorization from './pages/student/Memorization';
 import StudentMessages from './pages/student/Messages';
+import StudentSettings from './pages/student/Settings';
 
 // Parent pages
 import ParentDashboard from './pages/parent/Dashboard';
@@ -42,6 +46,7 @@ import ParentAttendance from './pages/parent/Attendance';
 import ParentMemorization from './pages/parent/Memorization';
 import ParentMessages from './pages/parent/Messages';
 import ParentReports from './pages/parent/Reports';
+import ParentSettings from './pages/parent/Settings';
 
 // Layout wrapper with sidebar + navbar
 const AppLayout = ({ children }) => {
@@ -95,6 +100,8 @@ const App = () => {
         <Route path="memorization" element={<AdminMemorization />} />
         <Route path="reports" element={<AdminReports />} />
         <Route path="messages" element={<AdminMessages />} />
+        <Route path="parents" element={<AdminParents />} />
+        <Route path="settings" element={<AdminSettings />} />
       </Route>
 
       {/* Teacher routes */}
@@ -110,6 +117,7 @@ const App = () => {
         <Route path="memorization" element={<TeacherMemorization />} />
         <Route path="reports" element={<TeacherReports />} />
         <Route path="messages" element={<TeacherMessages />} />
+        <Route path="settings" element={<TeacherSettings />} />
       </Route>
 
       {/* Student routes */}
@@ -123,6 +131,7 @@ const App = () => {
         <Route path="attendance" element={<StudentAttendance />} />
         <Route path="memorization" element={<StudentMemorization />} />
         <Route path="messages" element={<StudentMessages />} />
+        <Route path="settings" element={<StudentSettings />} />
       </Route>
 
       {/* Parent routes */}
@@ -137,6 +146,7 @@ const App = () => {
         <Route path="memorization" element={<ParentMemorization />} />
         <Route path="messages" element={<ParentMessages />} />
         <Route path="reports" element={<ParentReports />} />
+        <Route path="settings" element={<ParentSettings />} />
       </Route>
 
       {/* Fallback */}

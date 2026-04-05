@@ -5,6 +5,12 @@ import { useTheme } from '../../contexts/ThemeContext';
 import Logo from './Logo';
 
 const icons = {
+  settings: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  ),
   dashboard: (
     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -45,6 +51,11 @@ const icons = {
       <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
     </svg>
   ),
+  parents: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+    </svg>
+  ),
 };
 
 const NAV_CONFIG = {
@@ -57,6 +68,8 @@ const NAV_CONFIG = {
     { key: 'memorization', label: 'nav.memorization', path: '/admin/memorization', icon: 'memorization' },
     { key: 'reports', label: 'nav.reports', path: '/admin/reports', icon: 'reports' },
     { key: 'messages', label: 'nav.messages', path: '/admin/messages', icon: 'messages' },
+    { key: 'parents', label: 'nav.parents', path: '/admin/parents', icon: 'parents' },
+    { key: 'settings', label: 'nav.settings', path: '/admin/settings', icon: 'settings' },
   ],
   teacher: [
     { key: 'dashboard', label: 'nav.dashboard', path: '/teacher/dashboard', icon: 'dashboard' },
@@ -65,12 +78,14 @@ const NAV_CONFIG = {
     { key: 'memorization', label: 'nav.memorization', path: '/teacher/memorization', icon: 'memorization' },
     { key: 'reports', label: 'nav.reports', path: '/teacher/reports', icon: 'reports' },
     { key: 'messages', label: 'nav.messages', path: '/teacher/messages', icon: 'messages' },
+    { key: 'settings', label: 'nav.settings', path: '/teacher/settings', icon: 'settings' },
   ],
   student: [
     { key: 'dashboard', label: 'nav.dashboard', path: '/student/dashboard', icon: 'dashboard' },
     { key: 'attendance', label: 'nav.attendance', path: '/student/attendance', icon: 'attendance' },
     { key: 'memorization', label: 'nav.memorization', path: '/student/memorization', icon: 'memorization' },
     { key: 'messages', label: 'nav.messages', path: '/student/messages', icon: 'messages' },
+    { key: 'settings', label: 'nav.settings', path: '/student/settings', icon: 'settings' },
   ],
   parent: [
     { key: 'dashboard', label: 'nav.dashboard', path: '/parent/dashboard', icon: 'dashboard' },
@@ -78,6 +93,7 @@ const NAV_CONFIG = {
     { key: 'memorization', label: 'nav.memorization', path: '/parent/memorization', icon: 'memorization' },
     { key: 'messages', label: 'nav.messages', path: '/parent/messages', icon: 'messages' },
     { key: 'reports', label: 'nav.reports', path: '/parent/reports', icon: 'reports' },
+    { key: 'settings', label: 'nav.settings', path: '/parent/settings', icon: 'settings' },
   ],
 };
 
@@ -172,7 +188,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
               </svg>
             )}
-            <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+            <span>{theme === 'dark' ? t('settings.lightMode') : t('settings.darkMode')}</span>
           </button>
 
           <button onClick={handleLogout} className="sidebar-link w-full text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600">

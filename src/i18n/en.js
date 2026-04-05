@@ -10,12 +10,17 @@ const en = {
   'auth.login': 'Sign In',
   'auth.loginTo': 'Sign in to your account',
   'auth.email': 'Email Address',
+  'auth.username': 'Username',
+  'auth.usernameOrEmail': 'Username or Email',
   'auth.password': 'Password',
+  'auth.showPassword': 'Show Password',
+  'auth.hidePassword': 'Hide Password',
   'auth.loginBtn': 'Sign In',
   'auth.logout': 'Sign Out',
   'auth.welcomeBack': 'Welcome back',
-  'auth.loginFailed': 'Invalid email or password',
+  'auth.loginFailed': 'Invalid username or password',
   'auth.selectRoleFirst': 'Please select your role first',
+  'auth.changeRole': 'Change Role',
 
   // Roles
   'role.admin': 'Administrator',
@@ -38,8 +43,13 @@ const en = {
   'nav.messages': 'Messages',
   'nav.notifications': 'Notifications',
   'nav.settings': 'Settings',
+  'nav.parents': 'Parents',
 
   // Common
+  'common.role': 'Role',
+  'common.schoolName': 'School Name',
+  'common.country': 'Country',
+  'common.region': 'Region',
   'common.save': 'Save',
   'common.cancel': 'Cancel',
   'common.edit': 'Edit',
@@ -155,17 +165,44 @@ const en = {
   'account.create': 'Create New Account',
   'account.role': 'Account Type',
   'account.name': 'Full Name',
+  'account.nameAr': 'Name in Arabic',
+  'account.nameEn': 'Name in English',
+  'account.username': 'Username',
   'account.email': 'Email Address',
   'account.password': 'Password',
+  'account.schoolName': 'School Name',
+  'account.phone': 'Phone Number',
   'account.gender': 'Gender',
   'account.age': 'Age',
   'account.parent': 'Parent',
+  'account.guardian': 'Guardian',
   'account.children': 'Children',
   'account.assignClass': 'Assign to Class',
+  'account.class': 'Class',
+  'account.hizbMemorized': 'Starting Hizb (Memorized)',
+  'account.verificationCode': 'Verification Code (6 digits)',
+  'account.verifyEmail': 'Verify Email Address',
+  'account.sendCode': 'Send Code',
+  'account.verifyCode': 'Verify Code',
+  'account.pendingActivation': 'Your account must be activated by contacting platform administration via the provided email',
+  'account.register': 'Register New School',
+  'account.registerDesc': 'Create your account to start managing your Quranic school',
+
+  // Parents
+  'parents.title': 'Parents',
+  'parents.add': 'Add Parent',
+  'parents.edit': 'Edit Parent',
+  'parents.search': 'Search by name...',
+  'parents.nameAr': 'Name in Arabic',
+  'parents.nameEn': 'Name in English',
+  'parents.phone': 'Phone Number',
+  'parents.children': 'Children',
+  'parents.noChildren': 'No registered children',
 
   // Students
   'students.title': 'Students',
   'students.add': 'Add Student',
+  'students.edit': 'Edit Student',
   'students.search': 'Search by name...',
   'students.filterAge': 'Filter by Age',
   'students.filterClass': 'Filter by Class',
@@ -176,14 +213,26 @@ const en = {
   'students.progress': 'Hizb Progress',
   'students.class': 'Class',
   'students.parent': 'Parent',
+  'students.nameAr': 'Name in Arabic',
+  'students.nameEn': 'Name in English',
+  'students.guardian': 'Guardian',
+  'students.hizbMemorized': 'Starting Hizb (Memorized)',
+  'students.phone': 'Phone Number',
+  'students.username': 'Username',
+  'students.parentPhone': "Guardian's Phone",
 
   // Teachers
   'teachers.title': 'Teachers',
   'teachers.add': 'Add Teacher',
+  'teachers.edit': 'Edit Teacher',
   'teachers.search': 'Search by name...',
   'teachers.filterGender': 'Filter by Gender',
   'teachers.classes': 'Classes',
   'teachers.noClasses': 'No classes assigned',
+  'teachers.nameAr': 'Name in Arabic',
+  'teachers.nameEn': 'Name in English',
+  'teachers.phone': 'Phone Number',
+  'teachers.username': 'Username',
 
   // Classes
   'classes.title': 'Classes',
@@ -213,6 +262,8 @@ const en = {
   'prayer.after_isha': 'After Isha',
 
   // Attendance
+  'attendance.day': 'Day',
+  'attendance.filterDay': 'Filter by Day',
   'attendance.title': 'Attendance',
   'attendance.record': 'Record Attendance',
   'attendance.filterClass': 'Filter by Class',
@@ -230,6 +281,9 @@ const en = {
   'attendance.filterMonth': 'Filter by Month',
   'attendance.filterYear': 'Filter by Year',
   'attendance.noRecords': 'No attendance records found',
+  'attendance.hijriYear': 'Hijri Year',
+  'attendance.hijriMonth': 'Hijri Month',
+  'attendance.hijriDay': 'Hijri Day',
 
   // Memorization
   'memo.title': 'Memorization',
@@ -256,6 +310,7 @@ const en = {
   'reports.period': 'Period',
   'reports.monthly': 'Monthly',
   'reports.yearly': 'Yearly',
+  'reports.academicSeason': 'Academic Season',
   'reports.classComparison': 'Class Monthly Comparison',
   'reports.weakestClass': 'Weakest Class',
   'reports.studentRanking': 'Student Ranking',
@@ -271,6 +326,11 @@ const en = {
   'reports.attendanceDiscipline': 'Attendance & Discipline',
   'reports.teacherNotes': 'Teacher Monthly Notes',
   'reports.endOfMonth': 'Export available at end of month',
+  'reports.school': 'School',
+  'reports.country': 'Country',
+  'reports.region': 'Region',
+  'reports.teacher': 'Teacher',
+  'reports.monthlyChart': 'Monthly Progress Chart',
 
   // Notifications
   'notif.title': 'Notifications',
@@ -282,8 +342,15 @@ const en = {
   'notif.noNotifs': 'No notifications',
   'notif.new': 'New',
   'notif.from': 'From',
+  'notif.recipients': 'Recipients',
+  'notif.selectUsers': 'Select Users',
+  'notif.sendToAll': 'Send to All',
+  'notif.searchUser': 'Search user...',
+  'notif.filterRole': 'Filter by Type',
+  'notif.allRoles': 'All Types',
 
   // Messages
+  'msg.searchTeacher': 'Search teacher...',
   'msg.title': 'Messages',
   'msg.private': 'Private',
   'msg.group': 'Group',
@@ -304,6 +371,7 @@ const en = {
   // Teacher Dashboard
   'teacher.dashboard.title': 'My Dashboard',
   'teacher.dashboard.sessions': 'Total Sessions',
+  'teacher.dashboard.totalStudents': 'Total Students',
   'teacher.dashboard.schedule': 'Class Schedule',
   'teacher.dashboard.myClasses': 'My Classes',
 
@@ -320,6 +388,23 @@ const en = {
   'parent.dashboard.selectChild': 'Select Child',
   'parent.dashboard.childSchedule': 'Child\'s Schedule',
 
+  // Settings
+  'settings.title': 'Settings',
+  'settings.accountInfo': 'Account Information',
+  'settings.schoolInfo': 'School Information',
+  'settings.resetData': 'Reset Data',
+  'settings.createSchool': 'Create New School',
+  'settings.schoolName': 'School Name',
+  'settings.country': 'Country',
+  'settings.region': 'Region',
+  'settings.confirmReset': 'Are you sure you want to reset all data? This action cannot be undone.',
+  'settings.resetWarning': 'All data will be permanently deleted',
+  'settings.saveSchool': 'Save School Information',
+  'settings.darkMode': 'Dark Mode',
+  'settings.lightMode': 'Light Mode',
+  'settings.language': 'Language',
+  'settings.theme': 'Theme',
+
   // PDF
   'pdf.generatedBy': 'Generated by Tatabu',
   'pdf.date': 'Date',
@@ -327,6 +412,11 @@ const en = {
   'pdf.attendanceReport': 'Attendance Report',
   'pdf.memorReport': 'Memorization Report',
   'pdf.progressReport': 'Progress Report',
+  'pdf.school': 'School',
+  'pdf.country': 'Country',
+  'pdf.region': 'Region',
+  'pdf.teacher': 'Teacher',
+  'pdf.academicSeason': 'Academic Season',
 
   // Hijri months
   'hijri.muharram': 'Muharram',
