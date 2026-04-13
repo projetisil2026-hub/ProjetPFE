@@ -5,7 +5,7 @@ import { calcTotalHizbProgress } from '../../utils/quranData';
 import { generateId, hashPassword } from '../../utils/auth';
 import Modal, { ConfirmModal } from '../../components/common/Modal';
 
-const generateUsername = (nameEn, nameAr) => {
+const generateUsername = (nameEn) => {
   if (nameEn) {
     return nameEn.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '') || `student${Math.floor(Math.random() * 9000) + 1000}`;
   }
@@ -406,13 +406,15 @@ const AdminStudents = () => {
               <input type="number" min="5" max="25" value={form.age} onChange={e => setForm({...form, age: e.target.value})} className="input" />
             </div>
           </div>
-          <div>
-            <label className="label">{t('students.guardian')}</label>
-            <select value={form.parentId} onChange={e => setForm({...form, parentId: e.target.value})} className="select">
-              <option value="">{t('common.select')}</option>
-              {parents.map(p => <option key={p.id} value={p.id}>{p.nameAr || p.name}</option>)}
-            </select>
-          </div>
+          {(parseInt(form.age) || 0) <= 19 && (
+            <div>
+              <label className="label">{t('students.guardian')}</label>
+              <select value={form.parentId} onChange={e => setForm({...form, parentId: e.target.value})} className="select">
+                <option value="">{t('common.select')}</option>
+                {parents.map(p => <option key={p.id} value={p.id}>{p.nameAr || p.name}</option>)}
+              </select>
+            </div>
+          )}
           <div>
             <label className="label">{t('students.class')}</label>
             <select value={form.classId} onChange={e => setForm({...form, classId: e.target.value})} className="select">

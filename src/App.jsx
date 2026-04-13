@@ -7,6 +7,7 @@ import { SocketProvider } from './contexts/SocketContext';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Sidebar from './components/common/Sidebar';
 import Navbar from './components/common/Navbar';
+import IslamicBg from './components/common/IslamicBg';
 
 // Auth pages
 import RoleSelect from './pages/auth/RoleSelect';
@@ -61,8 +62,12 @@ const AppLayout = ({ children }) => {
           <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
           <div className={`flex-1 flex flex-col min-h-screen ${dir === 'rtl' ? 'lg:mr-64' : 'lg:ml-64'}`}>
             <Navbar onMenuClick={() => setSidebarOpen(true)} />
-            <main className="flex-1 p-4 sm:p-6 overflow-x-hidden">
-              {children}
+            <main className="flex-1 p-4 sm:p-6 overflow-x-hidden relative">
+              {/* Subtle Islamic pattern behind the page content */}
+              <IslamicBg opacity={0.038} />
+              <div className="relative z-10">
+                {children}
+              </div>
             </main>
           </div>
         </div>

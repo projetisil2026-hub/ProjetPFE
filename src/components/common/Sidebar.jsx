@@ -3,7 +3,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import Logo from './Logo';
+import IslamicBg from './IslamicBg';
 
+/* ─── Nav icons ─── */
 const icons = {
   settings: (
     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -58,97 +60,120 @@ const icons = {
   ),
 };
 
+/* ─── Navigation config ─── */
 const NAV_CONFIG = {
   admin: [
-    { key: 'dashboard', label: 'nav.dashboard', path: '/admin/dashboard', icon: 'dashboard' },
-    { key: 'students', label: 'nav.students', path: '/admin/students', icon: 'students' },
-    { key: 'teachers', label: 'nav.teachers', path: '/admin/teachers', icon: 'teachers' },
-    { key: 'classes', label: 'nav.classes', path: '/admin/classes', icon: 'classes' },
-    { key: 'attendance', label: 'nav.attendance', path: '/admin/attendance', icon: 'attendance' },
+    { key: 'dashboard',    label: 'nav.dashboard',    path: '/admin/dashboard',    icon: 'dashboard'    },
+    { key: 'students',     label: 'nav.students',     path: '/admin/students',     icon: 'students'     },
+    { key: 'teachers',     label: 'nav.teachers',     path: '/admin/teachers',     icon: 'teachers'     },
+    { key: 'classes',      label: 'nav.classes',      path: '/admin/classes',      icon: 'classes'      },
+    { key: 'attendance',   label: 'nav.attendance',   path: '/admin/attendance',   icon: 'attendance'   },
     { key: 'memorization', label: 'nav.memorization', path: '/admin/memorization', icon: 'memorization' },
-    { key: 'reports', label: 'nav.reports', path: '/admin/reports', icon: 'reports' },
-    { key: 'messages', label: 'nav.messages', path: '/admin/messages', icon: 'messages' },
-    { key: 'parents', label: 'nav.parents', path: '/admin/parents', icon: 'parents' },
-    { key: 'settings', label: 'nav.settings', path: '/admin/settings', icon: 'settings' },
+    { key: 'reports',      label: 'nav.reports',      path: '/admin/reports',      icon: 'reports'      },
+    { key: 'messages',     label: 'nav.messages',     path: '/admin/messages',     icon: 'messages'     },
+    { key: 'parents',      label: 'nav.parents',      path: '/admin/parents',      icon: 'parents'      },
+    { key: 'settings',     label: 'nav.settings',     path: '/admin/settings',     icon: 'settings'     },
   ],
   teacher: [
-    { key: 'dashboard', label: 'nav.dashboard', path: '/teacher/dashboard', icon: 'dashboard' },
-    { key: 'students', label: 'nav.students', path: '/teacher/students', icon: 'students' },
-    { key: 'attendance', label: 'nav.attendance', path: '/teacher/attendance', icon: 'attendance' },
+    { key: 'dashboard',    label: 'nav.dashboard',    path: '/teacher/dashboard',    icon: 'dashboard'    },
+    { key: 'students',     label: 'nav.students',     path: '/teacher/students',     icon: 'students'     },
+    { key: 'attendance',   label: 'nav.attendance',   path: '/teacher/attendance',   icon: 'attendance'   },
     { key: 'memorization', label: 'nav.memorization', path: '/teacher/memorization', icon: 'memorization' },
-    { key: 'reports', label: 'nav.reports', path: '/teacher/reports', icon: 'reports' },
-    { key: 'messages', label: 'nav.messages', path: '/teacher/messages', icon: 'messages' },
-    { key: 'settings', label: 'nav.settings', path: '/teacher/settings', icon: 'settings' },
+    { key: 'reports',      label: 'nav.reports',      path: '/teacher/reports',      icon: 'reports'      },
+    { key: 'messages',     label: 'nav.messages',     path: '/teacher/messages',     icon: 'messages'     },
+    { key: 'settings',     label: 'nav.settings',     path: '/teacher/settings',     icon: 'settings'     },
   ],
   student: [
-    { key: 'dashboard', label: 'nav.dashboard', path: '/student/dashboard', icon: 'dashboard' },
-    { key: 'attendance', label: 'nav.attendance', path: '/student/attendance', icon: 'attendance' },
+    { key: 'dashboard',    label: 'nav.dashboard',    path: '/student/dashboard',    icon: 'dashboard'    },
+    { key: 'attendance',   label: 'nav.attendance',   path: '/student/attendance',   icon: 'attendance'   },
     { key: 'memorization', label: 'nav.memorization', path: '/student/memorization', icon: 'memorization' },
-    { key: 'messages', label: 'nav.messages', path: '/student/messages', icon: 'messages' },
-    { key: 'settings', label: 'nav.settings', path: '/student/settings', icon: 'settings' },
+    { key: 'messages',     label: 'nav.messages',     path: '/student/messages',     icon: 'messages'     },
+    { key: 'settings',     label: 'nav.settings',     path: '/student/settings',     icon: 'settings'     },
   ],
   parent: [
-    { key: 'dashboard', label: 'nav.dashboard', path: '/parent/dashboard', icon: 'dashboard' },
-    { key: 'attendance', label: 'nav.attendance', path: '/parent/attendance', icon: 'attendance' },
+    { key: 'dashboard',    label: 'nav.dashboard',    path: '/parent/dashboard',    icon: 'dashboard'    },
+    { key: 'attendance',   label: 'nav.attendance',   path: '/parent/attendance',   icon: 'attendance'   },
     { key: 'memorization', label: 'nav.memorization', path: '/parent/memorization', icon: 'memorization' },
-    { key: 'messages', label: 'nav.messages', path: '/parent/messages', icon: 'messages' },
-    { key: 'reports', label: 'nav.reports', path: '/parent/reports', icon: 'reports' },
-    { key: 'settings', label: 'nav.settings', path: '/parent/settings', icon: 'settings' },
+    { key: 'messages',     label: 'nav.messages',     path: '/parent/messages',     icon: 'messages'     },
+    { key: 'reports',      label: 'nav.reports',      path: '/parent/reports',      icon: 'reports'      },
+    { key: 'settings',     label: 'nav.settings',     path: '/parent/settings',     icon: 'settings'     },
   ],
 };
 
+/* ─── Role accent colours ─── */
+const roleColors = {
+  admin:   'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+  teacher: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  student: 'bg-brand-green-100 text-brand-green-700 dark:bg-brand-green-900/30 dark:text-brand-green-400',
+  parent:  'bg-brand-gold-100 text-brand-gold-700 dark:bg-brand-gold-900/30 dark:text-brand-gold-400',
+};
+
+const roleAvatarBg = {
+  admin:   'bg-purple-600',
+  teacher: 'bg-blue-600',
+  student: 'bg-brand-green-600',
+  parent:  'bg-brand-gold-600',
+};
+
+/* ═══════════════════════════════════════════ */
 const Sidebar = ({ isOpen, onClose }) => {
   const { user, logout } = useAuth();
-  const { t, dir } = useLanguage();
+  const { t, lang, dir } = useLanguage();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   const navItems = NAV_CONFIG[user?.role] || [];
+  const displayName = lang === 'ar'
+    ? (user?.nameAr || user?.name)
+    : (user?.nameEn || user?.name);
 
   const handleLogout = () => {
     logout();
     navigate('/');
   };
 
-  const roleColors = {
-    admin: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-    teacher: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-    student: 'bg-brand-green-100 text-brand-green-700 dark:bg-brand-green-900/30 dark:text-brand-green-400',
-    parent: 'bg-brand-gold-100 text-brand-gold-700 dark:bg-brand-gold-900/30 dark:text-brand-gold-400',
-  };
-
   return (
     <>
-      {/* Mobile overlay */}
+      {/* Mobile backdrop */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-30 lg:hidden backdrop-blur-sm"
           onClick={onClose}
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar panel */}
       <aside
         className={`
-          fixed top-0 z-40 h-full w-64 bg-[var(--color-surface)] border-[var(--color-border)]
-          flex flex-col transition-transform duration-300 shadow-xl
+          fixed top-0 z-40 h-full w-64
+          bg-[var(--color-surface)] border-[var(--color-border)]
+          flex flex-col transition-transform duration-300
           ${dir === 'rtl' ? 'right-0 border-l' : 'left-0 border-r'}
-          ${isOpen ? 'translate-x-0' : dir === 'rtl' ? 'translate-x-full lg:translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          ${isOpen
+            ? 'translate-x-0'
+            : dir === 'rtl'
+              ? 'translate-x-full lg:translate-x-0'
+              : '-translate-x-full lg:translate-x-0'}
         `}
+        style={{ boxShadow: isOpen ? '4px 0 24px rgba(0,0,0,0.12)' : 'none' }}
       >
-        {/* Logo */}
-        <div className="p-5 border-b border-[var(--color-border)]">
-          <Logo size="md" />
+
+        {/* ── Logo section with Islamic pattern ── */}
+        <div className="relative overflow-hidden border-b border-[var(--color-border)] p-5 bg-gradient-to-br from-brand-green-700 to-brand-green-900">
+          <IslamicBg opacity={0.13} color="white" />
+          <div className="relative z-10">
+            <Logo size="md" />
+          </div>
         </div>
 
-        {/* User info */}
-        <div className="px-4 py-3 border-b border-[var(--color-border)]">
+        {/* ── User info ── */}
+        <div className="px-4 py-3.5 border-b border-[var(--color-border)]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-brand-green-600 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-              {user?.name?.charAt(0)?.toUpperCase()}
+            <div className={`w-10 h-10 rounded-xl ${roleAvatarBg[user?.role] || 'bg-brand-green-600'} flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow-sm`}>
+              {(displayName || user?.name || '?').charAt(0).toUpperCase()}
             </div>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-[var(--color-text)] truncate">{user?.name}</p>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-[var(--color-text)] truncate">{displayName || user?.name}</p>
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${roleColors[user?.role]}`}>
                 {t(`role.${user?.role}`)}
               </span>
@@ -156,16 +181,14 @@ const Sidebar = ({ isOpen, onClose }) => {
           </div>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+        {/* ── Navigation ── */}
+        <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">
           {navItems.map((item) => (
             <NavLink
               key={item.key}
               to={item.path}
               onClick={onClose}
-              className={({ isActive }) =>
-                `sidebar-link ${isActive ? 'active' : ''}`
-              }
+              className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
             >
               {icons[item.icon]}
               <span>{t(item.label)}</span>
@@ -173,12 +196,9 @@ const Sidebar = ({ isOpen, onClose }) => {
           ))}
         </nav>
 
-        {/* Bottom actions */}
-        <div className="p-3 border-t border-[var(--color-border)] space-y-1">
-          <button
-            onClick={toggleTheme}
-            className="sidebar-link w-full"
-          >
+        {/* ── Bottom actions ── */}
+        <div className="p-3 border-t border-[var(--color-border)] space-y-0.5">
+          <button onClick={toggleTheme} className="sidebar-link w-full">
             {theme === 'dark' ? (
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -191,7 +211,10 @@ const Sidebar = ({ isOpen, onClose }) => {
             <span>{theme === 'dark' ? t('settings.lightMode') : t('settings.darkMode')}</span>
           </button>
 
-          <button onClick={handleLogout} className="sidebar-link w-full text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600">
+          <button
+            onClick={handleLogout}
+            className="sidebar-link w-full text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600"
+          >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>

@@ -4,12 +4,13 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import Logo from '../../components/common/Logo';
+import IslamicBg from '../../components/common/IslamicBg';
 
 const roleColors = {
-  admin: { bg: 'from-purple-500 to-purple-700', badge: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' },
-  teacher: { bg: 'from-blue-500 to-blue-700', badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
-  student: { bg: 'from-brand-green-500 to-brand-green-700', badge: 'bg-brand-green-100 text-brand-green-700 dark:bg-brand-green-900/30 dark:text-brand-green-400' },
-  parent: { bg: 'from-brand-gold-500 to-brand-gold-700', badge: 'bg-brand-gold-100 text-brand-gold-700 dark:bg-brand-gold-900/30 dark:text-brand-gold-400' },
+  admin:   { bg: 'from-purple-600 to-purple-800',           badge: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'           },
+  teacher: { bg: 'from-blue-600 to-blue-800',               badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'                   },
+  student: { bg: 'from-brand-green-600 to-brand-green-800', badge: 'bg-brand-green-100 text-brand-green-700 dark:bg-brand-green-900/30 dark:text-brand-green-400' },
+  parent:  { bg: 'from-brand-gold-500 to-brand-gold-700',   badge: 'bg-brand-gold-100 text-brand-gold-700 dark:bg-brand-gold-900/30 dark:text-brand-gold-400'   },
 };
 
 const Login = () => {
@@ -18,12 +19,12 @@ const Login = () => {
   const { t, lang, switchLang } = useLanguage();
   const { theme, toggleTheme } = useTheme();
 
-  const [selectedRole, setSelectedRole] = useState('');
-  const [identifier, setIdentifier] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [selectedRole, setSelectedRole]   = useState('');
+  const [identifier, setIdentifier]       = useState('');
+  const [password, setPassword]           = useState('');
+  const [showPassword, setShowPassword]   = useState(false);
+  const [error, setError]                 = useState('');
+  const [loading, setLoading]             = useState(false);
 
   useEffect(() => {
     const role = sessionStorage.getItem('selectedRole');
@@ -38,15 +39,10 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedRole) {
-      setError(t('auth.selectRoleFirst'));
-      return;
-    }
+    if (!selectedRole) { setError(t('auth.selectRoleFirst')); return; }
     setError('');
     setLoading(true);
-
     setTimeout(() => {
-      // Support both email and username login
       const result = login(identifier, password, selectedRole);
       if (result.success) {
         navigate(`/${result.user.role}/dashboard`, { replace: true });
@@ -62,37 +58,46 @@ const Login = () => {
     navigate('/');
   };
 
-  const rc = roleColors[selectedRole] || roleColors.admin;
+  const rc = roleColors[selectedRole] || roleColors.student;
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] flex">
-      {/* Left decorative panel */}
+    <div className="min-h-screen bg-[var(--color-bg)] flex relative overflow-hidden">
+
+      {/* ── Left decorative panel (desktop only) ── */}
       <div className={`hidden lg:flex flex-col items-center justify-center w-2/5 bg-gradient-to-br ${rc.bg} p-12 relative overflow-hidden`}>
-        {/* Islamic geometric pattern */}
-        <svg className="absolute inset-0 w-full h-full opacity-10" viewBox="0 0 400 400" fill="none">
-          {[...Array(6)].map((_, i) => (
-            <g key={i} transform={`rotate(${i * 60} 200 200)`}>
-              <polygon points="200,50 230,140 150,90" fill="white" opacity="0.5" />
-              <polygon points="200,350 230,260 150,310" fill="white" opacity="0.5" />
-            </g>
-          ))}
-        </svg>
+        {/* Islamic pattern — white on coloured bg */}
+        <IslamicBg opacity={0.18} color="white" />
 
-        <Logo size="lg" className="justify-center mb-8" />
+        {/* Decorative large circles */}
+        <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-white/5" />
+        <div className="absolute -bottom-20 -left-16 w-56 h-56 rounded-full bg-white/5" />
 
-        <div className="text-center text-white">
-          <p className="text-lg opacity-90 mt-4">{t('app.tagline')}</p>
+        <div className="relative text-center text-white animate-fade-in-up">
+          <Logo size="lg" className="justify-center mb-8" />
+
+          <p className="text-lg opacity-90 mb-6">{t('app.tagline')}</p>
+
+          {/* Quranic verse decoration */}
+          <div className="glass-colored rounded-2xl px-6 py-4 mt-2">
+            <p className="quran-text text-white/90 text-xl leading-loose" dir="rtl">
+              ﴿ اقْرَأْ بِاسْمِ رَبِّكَ ﴾
+            </p>
+            <p className="text-white/60 text-xs mt-1">{lang === 'ar' ? 'العلق: ١' : 'Al-Alaq: 1'}</p>
+          </div>
         </div>
 
-        <div className="absolute bottom-8 text-white/60 text-sm">
+        <p className="absolute bottom-6 text-white/40 text-xs">
           تَتَبُعْ — Track Every Recitation
-        </div>
+        </p>
       </div>
 
-      {/* Right login panel */}
-      <div className="flex-1 flex flex-col">
+      {/* ── Right login panel ── */}
+      <div className="flex-1 flex flex-col relative">
+        {/* Very subtle pattern on the right side too */}
+        <IslamicBg opacity={0.035} />
+
         {/* Top bar */}
-        <div className="flex justify-between items-center p-4">
+        <div className="flex justify-between items-center p-4 relative z-10">
           <button
             onClick={handleChangeRole}
             className="flex items-center gap-2 text-sm text-[var(--color-text-muted)] hover:text-brand-green-600 transition-colors"
@@ -103,27 +108,43 @@ const Login = () => {
             {t('auth.changeRole')}
           </button>
           <div className="flex gap-2">
-            <button onClick={switchLang} className="px-3 py-1.5 rounded-xl border border-[var(--color-border)] text-sm font-medium text-[var(--color-text-muted)] hover:text-brand-green-600 transition-colors">
+            <button
+              onClick={switchLang}
+              className="px-3 py-1.5 rounded-xl border border-[var(--color-border)] text-sm font-medium text-[var(--color-text-muted)] hover:text-brand-green-600 hover:border-brand-green-300 transition-colors"
+            >
               {lang === 'ar' ? 'EN' : 'عر'}
             </button>
-            <button onClick={toggleTheme} className="p-2 rounded-xl border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-brand-green-600 transition-colors">
-              {theme === 'dark' ? '☀️' : '🌙'}
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-xl border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-brand-green-600 hover:border-brand-green-300 transition-colors"
+            >
+              {theme === 'dark' ? (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+              )}
             </button>
           </div>
         </div>
 
         {/* Form */}
-        <div className="flex-1 flex items-center justify-center px-6">
-          <div className="w-full max-w-md">
+        <div className="flex-1 flex items-center justify-center px-6 relative z-10">
+          <div className="w-full max-w-md animate-fade-in-up">
+
             {/* Mobile logo */}
             <div className="lg:hidden mb-8 flex justify-center">
               <Logo size="md" />
             </div>
 
+            {/* Heading */}
             <div className="mb-8">
               <h1 className="text-2xl font-bold text-[var(--color-text)]">{t('auth.loginTo')}</h1>
               {selectedRole && (
-                <div className="mt-2 flex items-center gap-2">
+                <div className="mt-2 flex items-center gap-2 flex-wrap">
                   <span className="text-[var(--color-text-muted)] text-sm">{t('common.role')}:</span>
                   <span className={`badge ${rc.badge}`}>{t(`role.${selectedRole}`)}</span>
                   <button
@@ -138,16 +159,13 @@ const Login = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Role selector (shown if no role pre-selected) */}
+              {/* Role selector (only when no role pre-selected) */}
               {!selectedRole && (
                 <div>
                   <label className="label">{t('account.role')}</label>
                   <select
                     value={selectedRole}
-                    onChange={(e) => {
-                      setSelectedRole(e.target.value);
-                      sessionStorage.setItem('selectedRole', e.target.value);
-                    }}
+                    onChange={(e) => { setSelectedRole(e.target.value); sessionStorage.setItem('selectedRole', e.target.value); }}
                     className="select"
                     required
                   >
@@ -160,7 +178,7 @@ const Login = () => {
                 </div>
               )}
 
-              {/* Username or Email */}
+              {/* Username / Email */}
               <div>
                 <label className="label">{t('auth.usernameOrEmail')}</label>
                 <input
@@ -190,8 +208,7 @@ const Login = () => {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className={`absolute top-1/2 -translate-y-1/2 ${lang === 'ar' ? 'left-3' : 'right-3'} text-[var(--color-text-muted)] hover:text-brand-green-600`}
-                    title={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
+                    className={`absolute top-1/2 -translate-y-1/2 ${lang === 'ar' ? 'left-3' : 'right-3'} text-[var(--color-text-muted)] hover:text-brand-green-600 transition-colors`}
                   >
                     {showPassword ? (
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -209,7 +226,7 @@ const Login = () => {
 
               {/* Error */}
               {error && (
-                <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm">
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm animate-scale-in">
                   <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
@@ -217,11 +234,11 @@ const Login = () => {
                 </div>
               )}
 
-              {/* Submit */}
+              {/* Submit button */}
               <button
                 type="submit"
                 disabled={loading}
-                className={`w-full py-3 rounded-xl text-white font-semibold text-base transition-all duration-200 bg-gradient-to-r ${rc.bg} hover:shadow-lg hover:scale-[1.01] active:scale-99 disabled:opacity-60`}
+                className={`w-full py-3 rounded-xl text-white font-semibold text-base transition-all duration-200 bg-gradient-to-r ${rc.bg} hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed`}
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
