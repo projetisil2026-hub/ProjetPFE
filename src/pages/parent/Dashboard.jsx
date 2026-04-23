@@ -139,24 +139,32 @@ const ParentDashboard = () => {
 
               {/* ── Class & Teacher ── */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fade-in-up delay-225">
-                {/* Class card → attendance */}
-                <div
-                  className="card p-5 cursor-pointer hover:shadow-md hover:scale-[1.01] transition-all duration-200 group"
-                  onClick={() => navigate('/parent/attendance')}
-                >
+                {/* Class card — info only, no redirect */}
+                <div className="card p-5">
                   <div className="flex items-center gap-2 mb-3">
                     <span className="w-7 h-7 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center">
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16"/></svg>
                     </span>
                     <p className="text-sm font-medium text-[var(--color-text-muted)]">{t('nav.classes')}</p>
-                    <svg className="w-3.5 h-3.5 ms-auto text-[var(--color-text-muted)] opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                   </div>
                   {childData.myClass ? (
-                    <div>
+                    <div className="space-y-1.5">
                       <p className="text-xl font-bold text-[var(--color-text)]">{childData.myClass.name}</p>
-                      <p className="text-sm text-[var(--color-text-muted)] mt-1">
+                      <p className="text-sm text-[var(--color-text-muted)]">
                         {childData.myClass.sessionsPerWeek} {t('teacher.dashboard.sessions').toLowerCase()}/wk
                       </p>
+                      {childData.myClass.schedule?.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {childData.myClass.schedule.map((s, i) => (
+                            <div key={i} className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
+                              <span className="font-semibold text-purple-600 dark:text-purple-400">{t(`day.${s.day}`)}</span>
+                              <span>
+                                {s.timeType === 'prayer' ? t(`prayer.${s.prayerRef}`) : `${s.startTime} – ${s.endTime}`}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ) : <p className="text-[var(--color-text-muted)] text-sm">—</p>}
                 </div>
@@ -183,22 +191,18 @@ const ParentDashboard = () => {
                 </div>
               </div>
 
-              {/* ── Schedule (clickable → attendance) ── */}
+              {/* ── Schedule (info only, no redirect) ── */}
               {childData.myClass?.schedule?.length > 0 && (
-                <div
-                  className="card p-5 cursor-pointer hover:shadow-md hover:scale-[1.01] transition-all duration-200 group animate-fade-in-up delay-300"
-                  onClick={() => navigate('/parent/attendance')}
-                >
+                <div className="card p-5 animate-fade-in-up delay-300">
                   <h3 className="font-semibold text-[var(--color-text)] mb-4 flex items-center gap-2">
                     <span className="w-7 h-7 rounded-lg bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 flex items-center justify-center">
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                     </span>
                     {t('parent.dashboard.childSchedule')}
-                    <svg className="w-3.5 h-3.5 ms-auto text-[var(--color-text-muted)] opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                   </h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                     {childData.myClass.schedule.map((s, i) => (
-                      <div key={i} className="p-3.5 rounded-xl border-2 border-teal-100 dark:border-teal-900/40 bg-teal-50/50 dark:bg-teal-900/10 hover:border-teal-400 transition-colors">
+                      <div key={i} className="p-3.5 rounded-xl border-2 border-teal-100 dark:border-teal-900/40 bg-teal-50/50 dark:bg-teal-900/10">
                         <p className="font-bold text-teal-700 dark:text-teal-400 text-sm">{t(`day.${s.day}`)}</p>
                         <p className="text-xs text-[var(--color-text-muted)] mt-1">
                           {s.timeType === 'prayer' ? t(`prayer.${s.prayerRef}`) : `${s.startTime} – ${s.endTime}`}

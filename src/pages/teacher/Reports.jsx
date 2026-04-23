@@ -3,8 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { storage, KEYS } from '../../utils/storage';
 import { calcTotalHizbProgress } from '../../utils/quranData';
-import { exportMemorizationPDF, exportAttendancePDF } from '../../utils/pdfExport';
-import { generateId } from '../../utils/auth';
+import { exportMemorizationPDF } from '../../utils/pdfExport';
 import { SURAHS } from '../../utils/quranData';
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -15,7 +14,6 @@ const TeacherReports = () => {
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [notes, setNotes] = useState('');
   const [toast, setToast] = useState(null);
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
@@ -54,30 +52,6 @@ const TeacherReports = () => {
 
     return { studentStats, totalAttend: allAttend, totalMemo: allMemo };
   }, [activeClass, classStudents, selectedMonth, selectedYear]);
-
-  // Load existing notes
-  const existingNote = storage.findOne(KEYS.MONTHLY_NOTES, n =>
-    n.teacherId === user?.id && n.classId === activeClass?.id &&
-    n.month === selectedMonth && n.year === selectedYear
-  );
-
-  const handleSaveNotes = () => {
-    if (!activeClass) return;
-    if (existingNote) {
-      storage.update(KEYS.MONTHLY_NOTES, existingNote.id, { notes });
-    } else {
-      storage.add(KEYS.MONTHLY_NOTES, {
-        id: generateId(),
-        teacherId: user.id,
-        classId: activeClass.id,
-        month: selectedMonth,
-        year: selectedYear,
-        notes,
-        createdAt: new Date().toISOString(),
-      });
-    }
-    showToast(t('common.success'));
-  };
 
   // Check if current date is end of month
   const now = new Date();
@@ -180,19 +154,6 @@ const TeacherReports = () => {
         </div>
       )}
 
-      {/* Monthly Notes */}
-      <div className="card p-5">
-        <h3 className="font-semibold text-[var(--color-text)] mb-4">{t('reports.monthlyNotes')}</h3>
-        <textarea
-          value={notes || existingNote?.notes || ''}
-          onChange={e => setNotes(e.target.value)}
-          className="input min-h-[120px] resize-none"
-          placeholder={t('reports.addNotes')}
-        />
-        <div className="flex justify-end mt-3">
-          <button onClick={handleSaveNotes} className="btn-primary">{t('common.save')}</button>
-        </div>
-      </div>
     </div>
   );
 };

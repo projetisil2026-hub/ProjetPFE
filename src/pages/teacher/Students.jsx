@@ -32,7 +32,17 @@ const TeacherStudents = () => {
       (s.nameAr || s.name || '').toLowerCase().includes(search.toLowerCase()) ||
       (s.nameEn || '').toLowerCase().includes(search.toLowerCase())
     );
-    if (filterAge) all = all.filter(s => s.age === parseInt(filterAge));
+    if (filterAge) {
+      const trimmed = filterAge.trim();
+      const rangeMatch = trimmed.match(/^(\d+)\s*-\s*(\d+)$/);
+      if (rangeMatch) {
+        const min = parseInt(rangeMatch[1]);
+        const max = parseInt(rangeMatch[2]);
+        all = all.filter(s => s.age >= Math.min(min, max) && s.age <= Math.max(min, max));
+      } else if (/^\d+$/.test(trimmed)) {
+        all = all.filter(s => s.age === parseInt(trimmed));
+      }
+    }
 
     return all.map(s => {
       const cls = myClasses.find(c => c.studentIds?.includes(s.id));
@@ -54,7 +64,7 @@ const TeacherStudents = () => {
       <div className="card p-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md">
           <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={t('students.search')} className="input" />
-          <input type="number" value={filterAge} onChange={e => setFilterAge(e.target.value)} placeholder={t('students.filterAge')} className="input" min="5" max="25" />
+          <input type="text" value={filterAge} onChange={e => setFilterAge(e.target.value)} placeholder={`${t('students.filterAge')} (e.g. 12 or 12-15)`} className="input" />
         </div>
       </div>
 

@@ -233,10 +233,13 @@ const AdminStudents = () => {
             <option value="male">{t('gender.male')}</option>
             <option value="female">{t('gender.female')}</option>
           </select>
-          <input type="number" value={filterAge} onChange={e => setFilterAge(e.target.value)} placeholder={t('students.filterAge')} className="input" min="5" max="25" />
-          <div className="flex gap-1">
-            <input type="number" value={hizbFrom} onChange={e => setHizbFrom(e.target.value)} placeholder="≥" className="input" min="0" max="60" />
-            <input type="number" value={hizbTo} onChange={e => setHizbTo(e.target.value)} placeholder="≤" className="input" min="0" max="60" />
+          <input type="number" value={filterAge} onChange={e => setFilterAge(e.target.value)} placeholder={t('students.filterAge')} className="input" min="5" />
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-semibold text-brand-green-700 dark:text-brand-green-400 px-1">Hifdh</span>
+            <div className="flex gap-1">
+              <input type="number" value={hizbFrom} onChange={e => setHizbFrom(e.target.value)} placeholder="≥" className="input" min="0" max="60" />
+              <input type="number" value={hizbTo} onChange={e => setHizbTo(e.target.value)} placeholder="≤" className="input" min="0" max="60" />
+            </div>
           </div>
         </div>
       </div>
@@ -403,7 +406,7 @@ const AdminStudents = () => {
             </div>
             <div>
               <label className="label">{t('common.age')}</label>
-              <input type="number" min="5" max="25" value={form.age} onChange={e => setForm({...form, age: e.target.value})} className="input" />
+              <input type="number" min="0" value={form.age} onChange={e => setForm({...form, age: e.target.value})} className="input" />
             </div>
           </div>
           {(parseInt(form.age) || 0) <= 19 && (

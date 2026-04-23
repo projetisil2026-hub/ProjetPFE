@@ -112,11 +112,7 @@ const TeacherDashboard = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {cls.todaySessions.length > 0 && (
-                <span className="badge bg-brand-green-100 text-brand-green-700 dark:bg-brand-green-900/30 dark:text-brand-green-400">
-                  {t('admin.dashboard.todayClasses')}
-                </span>
-              )}
+
               <span className="badge bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
                 {cls.students.length} {t('nav.students').toLowerCase()}
               </span>

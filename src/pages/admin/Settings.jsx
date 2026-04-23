@@ -4,8 +4,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { storage, KEYS } from '../../utils/storage';
-import { hashPassword } from '../../utils/auth';
+import { hashPassword, generateId } from '../../utils/auth';
 import { ConfirmModal } from '../../components/common/Modal';
+import Modal from '../../components/common/Modal';
 
 const AdminSettings = () => {
   const navigate = useNavigate();
@@ -16,6 +17,8 @@ const AdminSettings = () => {
   const [toast, setToast] = useState(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [activeTab, setActiveTab] = useState('account');
+  const [showCreateYear, setShowCreateYear] = useState(false);
+  const [yearForm, setYearForm] = useState({ name: '', startDate: '', endDate: '' });
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -70,8 +73,22 @@ const AdminSettings = () => {
     setAccountForm(prev => ({ ...prev, currentPassword: '', newPassword: '' }));
   };
 
+  const handleCreateYear = (e) => {
+    e.preventDefault();
+    storage.add(KEYS.ACADEMIC_YEARS, {
+      id: generateId(),
+      name: yearForm.name,
+      startDate: yearForm.startDate,
+      endDate: yearForm.endDate,
+      isActive: false,
+      createdAt: new Date().toISOString(),
+    });
+    setShowCreateYear(false);
+    setYearForm({ name: '', startDate: '', endDate: '' });
+    showToast(t('common.created'));
+  };
+
   const handleResetData = () => {
-    // Clear all data except school info
     localStorage.removeItem(KEYS.USERS);
     localStorage.removeItem(KEYS.ACADEMIC_YEARS);
     localStorage.removeItem(KEYS.CLASSES);
@@ -88,6 +105,7 @@ const AdminSettings = () => {
   const tabs = [
     { key: 'account', label: t('settings.accountInfo') },
     { key: 'school', label: t('settings.schoolInfo') },
+    { key: 'year', label: t('year.academic') },
     { key: 'appearance', label: t('settings.theme') },
     { key: 'danger', label: t('settings.resetData') },
   ];
@@ -187,13 +205,27 @@ const AdminSettings = () => {
         </div>
       )}
 
+      {/* Academic Year */}
+      {activeTab === 'year' && (
+        <div className="card p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-[var(--color-text)]">{t('year.academic')}</h2>
+            <button onClick={() => setShowCreateYear(true)} className="btn-primary">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+              {t('year.create')}
+            </button>
+          </div>
+          <p className="text-sm text-[var(--color-text-muted)]">{t('year.noYears')}</p>
+        </div>
+      )}
+
       {/* Appearance */}
       {activeTab === 'appearance' && (
         <div className="card p-6 space-y-4">
           <h2 className="font-semibold text-[var(--color-text)] mb-4">{t('settings.theme')}</h2>
           <div className="flex items-center justify-between p-3 rounded-xl border border-[var(--color-border)]">
             <span className="text-sm font-medium text-[var(--color-text)]">{t('settings.theme')}</span>
-            <button onClick={toggleTheme} className={`btn-secondary text-sm`}>
+            <button onClick={toggleTheme} className="btn-secondary text-sm">
               {theme === 'dark' ? t('settings.lightMode') : t('settings.darkMode')}
             </button>
           </div>
@@ -216,6 +248,35 @@ const AdminSettings = () => {
           </button>
         </div>
       )}
+
+      {/* Create Year Modal */}
+      <Modal
+        isOpen={showCreateYear}
+        onClose={() => setShowCreateYear(false)}
+        title={t('year.create')}
+        size="sm"
+        footer={
+          <>
+            <button onClick={() => setShowCreateYear(false)} className="btn-ghost">{t('common.cancel')}</button>
+            <button form="create-year-form" type="submit" className="btn-primary">{t('common.save')}</button>
+          </>
+        }
+      >
+        <form id="create-year-form" onSubmit={handleCreateYear} className="space-y-4">
+          <div>
+            <label className="label">{t('year.name')}</label>
+            <input type="text" value={yearForm.name} onChange={e => setYearForm({ ...yearForm, name: e.target.value })} className="input" placeholder="2024-2025" required />
+          </div>
+          <div>
+            <label className="label">{t('year.startDate')}</label>
+            <input type="date" value={yearForm.startDate} onChange={e => setYearForm({ ...yearForm, startDate: e.target.value })} className="input" required />
+          </div>
+          <div>
+            <label className="label">{t('year.endDate')}</label>
+            <input type="date" value={yearForm.endDate} onChange={e => setYearForm({ ...yearForm, endDate: e.target.value })} className="input" required />
+          </div>
+        </form>
+      </Modal>
 
       <ConfirmModal
         isOpen={showResetConfirm}

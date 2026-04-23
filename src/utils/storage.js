@@ -69,6 +69,8 @@ export const initializeData = () => {
     {
       id: adminId,
       name: 'Ahmed Al-Rashidi',
+      nameAr: 'أحمد الراشدي',
+      nameEn: 'Ahmed Al-Rashidi',
       email: 'admin@tatabu.com',
       password: hashPassword('Admin123!'),
       role: 'admin',
@@ -79,6 +81,8 @@ export const initializeData = () => {
     {
       id: teacher1Id,
       name: 'Omar Al-Farouq',
+      nameAr: 'عمر الفاروق',
+      nameEn: 'Omar Al-Farouq',
       email: 'teacher1@tatabu.com',
       password: hashPassword('Teacher123!'),
       role: 'teacher',
@@ -88,7 +92,9 @@ export const initializeData = () => {
     },
     {
       id: teacher2Id,
-      name: 'Fatimah Al-Zahra',
+      name: 'Fatimah Zahra',
+      nameAr: 'فاطمة الزهراء',
+      nameEn: 'Fatimah Zahra',
       email: 'teacher2@tatabu.com',
       password: hashPassword('Teacher123!'),
       role: 'teacher',
@@ -99,6 +105,8 @@ export const initializeData = () => {
     {
       id: parent1Id,
       name: 'Khalid Al-Mansouri',
+      nameAr: 'خالد المنصوري',
+      nameEn: 'Khalid Al-Mansouri',
       email: 'parent1@tatabu.com',
       password: hashPassword('Parent123!'),
       role: 'parent',
@@ -109,7 +117,9 @@ export const initializeData = () => {
     },
     {
       id: parent2Id,
-      name: 'Maryam Al-Jabri',
+      name: 'Maryam Al-Hashimi',
+      nameAr: 'مريم الهاشمي',
+      nameEn: 'Maryam Al-Hashimi',
       email: 'parent2@tatabu.com',
       password: hashPassword('Parent123!'),
       role: 'parent',
@@ -120,7 +130,9 @@ export const initializeData = () => {
     },
     {
       id: student1Id,
-      name: 'Ibrahim Al-Mansouri',
+      name: 'Yusuf Al-Mansouri',
+      nameAr: 'يوسف المنصوري',
+      nameEn: 'Yusuf Al-Mansouri',
       email: 'student1@tatabu.com',
       password: hashPassword('Student123!'),
       role: 'student',
@@ -132,6 +144,8 @@ export const initializeData = () => {
     {
       id: student2Id,
       name: 'Aisha Al-Mansouri',
+      nameAr: 'عائشة المنصوري',
+      nameEn: 'Aisha Al-Mansouri',
       email: 'student2@tatabu.com',
       password: hashPassword('Student123!'),
       role: 'student',
@@ -142,7 +156,9 @@ export const initializeData = () => {
     },
     {
       id: student3Id,
-      name: 'Yusuf Al-Jabri',
+      name: 'Ibrahim Al-Hashimi',
+      nameAr: 'إبراهيم الهاشمي',
+      nameEn: 'Ibrahim Al-Hashimi',
       email: 'student3@tatabu.com',
       password: hashPassword('Student123!'),
       role: 'student',
@@ -153,7 +169,9 @@ export const initializeData = () => {
     },
     {
       id: student4Id,
-      name: 'Zainab Al-Jabri',
+      name: 'Khadija Al-Hashimi',
+      nameAr: 'خديجة الهاشمي',
+      nameEn: 'Khadija Al-Hashimi',
       email: 'student4@tatabu.com',
       password: hashPassword('Student123!'),
       role: 'student',

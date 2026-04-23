@@ -7,11 +7,92 @@ import { formatHijri, formatGregorian, todayISO, gregorianToHijri, hijriToGregor
 import { generateId } from '../../utils/auth';
 import { ConfirmModal } from '../../components/common/Modal';
 
+const TOTAL_QURAN_AYAHS = 6236;
+
 const evalColors = {
   excellent: 'bg-brand-green-100 text-brand-green-700 dark:bg-brand-green-900/30 dark:text-brand-green-400',
   good: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
   average: 'bg-brand-gold-100 text-brand-gold-700 dark:bg-brand-gold-900/30 dark:text-brand-gold-400',
   repeat: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+};
+
+const MemoProgressPanel = ({ myClasses, allUsers, filterClass, t, lang }) => {
+  const activeClasses = filterClass
+    ? myClasses.filter(c => c.id === filterClass)
+    : myClasses;
+
+  const allMemo = storage.getAll(KEYS.MEMORIZATION);
+
+  const studentProgress = activeClasses.flatMap(cls =>
+    (cls.studentIds || []).map(sid => {
+      const student = allUsers.find(u => u.id === sid);
+      if (!student) return null;
+      const studentMemos = allMemo.filter(m => m.studentId === sid);
+      const totalAssigned = studentMemos.reduce((sum, m) => sum + (m.toAyah - m.fromAyah + 1), 0);
+      const memorized = studentMemos
+        .filter(m => m.evaluation !== 'repeat')
+        .reduce((sum, m) => sum + (m.toAyah - m.fromAyah + 1), 0);
+      const progressPct = totalAssigned > 0
+        ? Math.min(Math.round((memorized / totalAssigned) * 100), 100)
+        : 0;
+      const quranPct = Math.min(((memorized / TOTAL_QURAN_AYAHS) * 100).toFixed(2), 100);
+      return {
+        id: sid,
+        name: lang === 'ar' ? (student.nameAr || student.name) : (student.nameEn || student.name || student.nameAr),
+        className: cls.name,
+        totalAssigned,
+        memorized,
+        progressPct,
+        quranPct,
+      };
+    }).filter(Boolean)
+  );
+
+  return (
+    <div className="card p-5">
+      <h3 className="font-semibold text-[var(--color-text)] mb-4 flex items-center gap-2">
+        <span className="w-7 h-7 rounded-lg bg-brand-gold-100 dark:bg-brand-gold-900/30 text-brand-gold-600 dark:text-brand-gold-400 flex items-center justify-center">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+        </span>
+        {t('memo.title')} — {t('memo.progress')}
+        <span className="ms-auto text-xs text-[var(--color-text-muted)] font-normal">
+          {t('memo.totalProgress')}: {TOTAL_QURAN_AYAHS} {t('quran.ayahs')}
+        </span>
+      </h3>
+      {studentProgress.length === 0 ? (
+        <p className="text-sm text-center text-[var(--color-text-muted)] py-4">{t('common.noData')}</p>
+      ) : (
+        <div className="space-y-3">
+          {studentProgress.map(s => (
+            <div key={s.id} className="p-3.5 rounded-xl border border-[var(--color-border)]">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <span className="font-medium text-sm text-[var(--color-text)]">{s.name}</span>
+                  <span className="ms-2 text-xs text-[var(--color-text-muted)]">{s.className}</span>
+                </div>
+                <div className="text-end">
+                  <span className="text-lg font-bold text-brand-green-600">{s.progressPct}%</span>
+                  <p className="text-xs text-[var(--color-text-muted)]">{s.memorized} / {s.totalAssigned} {t('quran.ayahs')}</p>
+                </div>
+              </div>
+              <div className="h-2.5 bg-[var(--color-border)] rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-700"
+                  style={{
+                    width: `${s.progressPct}%`,
+                    background: `linear-gradient(90deg, #16a34a ${s.progressPct < 50 ? '100%' : '60%'}, #f59e0b)`,
+                  }}
+                />
+              </div>
+              <p className="text-xs text-[var(--color-text-muted)] mt-1.5">
+                {t('quran.totalAyahs')}: {s.quranPct}% {t('common.from')} {TOTAL_QURAN_AYAHS}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 };
 
 const TeacherMemorization = () => {
@@ -317,6 +398,17 @@ const TeacherMemorization = () => {
           </tbody>
         </table>
       </div>
+
+      {/* AI Memorization Progress Summary */}
+      {myClasses.length > 0 && (
+        <MemoProgressPanel
+          myClasses={myClasses}
+          allUsers={allUsers}
+          filterClass={filterClass}
+          t={t}
+          lang={lang}
+        />
+      )}
 
       <ConfirmModal isOpen={!!deleteId} onClose={() => setDeleteId(null)} onConfirm={() => handleDelete(deleteId)} />
     </div>
