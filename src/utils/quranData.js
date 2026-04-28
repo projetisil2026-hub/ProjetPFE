@@ -1,3 +1,14 @@
+import {
+  getMemorizedHizb,
+  calcTotalHizbFromRecords,
+  getHizbOfVerse,
+  getJuzOfVerse,
+  getCumulativeHizbAt,
+  verifyHizbIntegrity,
+  HIZB_BOUNDARIES,
+  VERSE_TABLE,
+} from './quranHizb.js';
+
 // Complete Quran data: 114 Surahs with Arabic names, English names, and Ayah counts
 export const SURAHS = [
   { id: 1,  nameAr: 'الفاتحة',      nameEn: 'Al-Fatiha',      ayahs: 7   },
@@ -118,25 +129,43 @@ export const SURAHS = [
 
 export const TOTAL_AYAHS = SURAHS.reduce((sum, s) => sum + s.ayahs, 0); // 6236
 export const TOTAL_HIZBS = 60;
-export const AYAHS_PER_HIZB = TOTAL_AYAHS / TOTAL_HIZBS; // ~103.93
+export const AYAHS_PER_HIZB = TOTAL_AYAHS / TOTAL_HIZBS; // ~103.93 (kept for reference)
 
-// Calculate cumulative ayahs up to a given surah
-export const getCumulativeAyahsBefore = (surahId) => {
-  return SURAHS.slice(0, surahId - 1).reduce((sum, s) => sum + s.ayahs, 0);
+// ---------------------------------------------------------------------------
+// Accurate Hizb engine (imported at top of file)
+// ---------------------------------------------------------------------------
+export {
+  getMemorizedHizb,
+  calcTotalHizbFromRecords,
+  getHizbOfVerse,
+  getJuzOfVerse,
+  getCumulativeHizbAt,
+  verifyHizbIntegrity,
+  HIZB_BOUNDARIES,
+  VERSE_TABLE,
 };
 
-// Calculate hizb progress for a memorization record
-export const calcHizbProgress = (surahId, fromAyah, toAyah) => {
-  const cumBefore = getCumulativeAyahsBefore(surahId);
-  const ayahsInRecord = toAyah - fromAyah + 1;
-  return ayahsInRecord / AYAHS_PER_HIZB;
-};
+// ---------------------------------------------------------------------------
+// Backward-compatible helpers (preserve existing call signatures)
+// ---------------------------------------------------------------------------
 
-// Calculate total hizb progress from an array of memorization records
-export const calcTotalHizbProgress = (records) => {
-  const totalAyahs = records.reduce((sum, r) => sum + (r.toAyah - r.fromAyah + 1), 0);
-  return Math.min((totalAyahs / AYAHS_PER_HIZB), TOTAL_HIZBS);
-};
+export const getCumulativeAyahsBefore = (surahId) =>
+  SURAHS.slice(0, surahId - 1).reduce((sum, s) => sum + s.ayahs, 0);
+
+/**
+ * calcHizbProgress(surahId, fromAyah, toAyah)
+ * Kept as a 3-arg wrapper — start and end verse are within the same surah.
+ * Old formula used a global average (÷103.93); now uses accurate Hizb weights.
+ */
+export const calcHizbProgress = (surahId, fromAyah, toAyah) =>
+  getMemorizedHizb(surahId, fromAyah, surahId, toAyah);
+
+/**
+ * calcTotalHizbProgress(records)
+ * records: Array<{ surahId, fromAyah, toAyah }>
+ * Drop-in replacement — deduplicates overlapping ranges, caps at 60.
+ */
+export const calcTotalHizbProgress = calcTotalHizbFromRecords;
 
 export const getSurahById = (id) => SURAHS.find(s => s.id === id);
 export const getSurahName = (id, lang = 'ar') =>

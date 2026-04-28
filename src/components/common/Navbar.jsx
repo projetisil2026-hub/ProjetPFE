@@ -49,15 +49,6 @@ const Navbar = ({ onMenuClick }) => {
 
       {/* Right actions */}
       <div className="flex items-center gap-2">
-        {/* Language switcher */}
-        <button
-          onClick={switchLang}
-          className="px-3 py-1.5 rounded-xl border border-[var(--color-border)] text-sm font-medium text-[var(--color-text-muted)] hover:text-brand-green-600 hover:border-brand-green-300 transition-colors"
-          title="Switch language"
-        >
-          {lang === 'ar' ? 'EN' : 'عر'}
-        </button>
-
         {/* Notifications */}
         <div className="relative">
           <button

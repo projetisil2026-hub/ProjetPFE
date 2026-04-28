@@ -155,18 +155,6 @@ const StudentDashboard = () => {
               <p className="text-sm text-[var(--color-text-muted)]">
                 {myClass.sessionsPerWeek} {t('teacher.dashboard.sessions').toLowerCase()}/wk
               </p>
-              {myClass.schedule?.length > 0 && (
-                <div className="mt-2 space-y-1">
-                  {myClass.schedule.map((s, i) => (
-                    <div key={i} className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
-                      <span className="font-semibold text-purple-600 dark:text-purple-400">{t(`day.${s.day}`)}</span>
-                      <span>
-                        {s.timeType === 'prayer' ? t(`prayer.${s.prayerRef}`) : `${s.startTime} – ${s.endTime}`}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           ) : (
             <p className="text-[var(--color-text-muted)] text-sm">—</p>

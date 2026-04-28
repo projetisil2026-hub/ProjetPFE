@@ -66,12 +66,12 @@ const NAV_CONFIG = {
     { key: 'dashboard',    label: 'nav.dashboard',    path: '/admin/dashboard',    icon: 'dashboard'    },
     { key: 'students',     label: 'nav.students',     path: '/admin/students',     icon: 'students'     },
     { key: 'teachers',     label: 'nav.teachers',     path: '/admin/teachers',     icon: 'teachers'     },
+    { key: 'parents',      label: 'nav.parents',      path: '/admin/parents',      icon: 'parents'      },
     { key: 'classes',      label: 'nav.classes',      path: '/admin/classes',      icon: 'classes'      },
     { key: 'attendance',   label: 'nav.attendance',   path: '/admin/attendance',   icon: 'attendance'   },
     { key: 'memorization', label: 'nav.memorization', path: '/admin/memorization', icon: 'memorization' },
     { key: 'reports',      label: 'nav.reports',      path: '/admin/reports',      icon: 'reports'      },
     { key: 'messages',     label: 'nav.messages',     path: '/admin/messages',     icon: 'messages'     },
-    { key: 'parents',      label: 'nav.parents',      path: '/admin/parents',      icon: 'parents'      },
     { key: 'settings',     label: 'nav.settings',     path: '/admin/settings',     icon: 'settings'     },
   ],
   teacher: [

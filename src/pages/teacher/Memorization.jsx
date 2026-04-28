@@ -135,7 +135,10 @@ const TeacherMemorization = () => {
   const studentsForClass = useMemo(() => {
     if (!form.classId) return [];
     const cls = myClasses.find(c => c.id === form.classId);
-    return allUsers.filter(u => cls?.studentIds?.includes(u.id));
+    const today = todayISO();
+    const attendanceRecords = storage.getAll(KEYS.ATTENDANCE).filter(a => a.classId === form.classId && a.date === today && a.status === 'present');
+    const presentStudentIds = attendanceRecords.map(a => a.studentId);
+    return allUsers.filter(u => cls?.studentIds?.includes(u.id) && presentStudentIds.includes(u.id));
   }, [form.classId, myClasses, allUsers]);
 
   const selectedSurah = SURAHS.find(s => s.id === parseInt(form.surahId));
