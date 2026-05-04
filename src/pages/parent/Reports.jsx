@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { storage, KEYS } from '../../utils/storage';
+import { useData } from '../../contexts/DataContext';
 import { SURAHS, calcTotalHizbProgress } from '../../utils/quranData';
 import { exportProgressReportPDF } from '../../utils/pdfExport';
 
@@ -10,38 +10,46 @@ const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
 const ParentReports = () => {
   const { user } = useAuth();
   const { t, lang } = useLanguage();
+  const { users, classes, attendance, memorization, loadAll } = useData();
   const [selectedChildId, setSelectedChildId] = useState('');
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
+  useEffect(() => { loadAll(); }, [loadAll]);
+
   const children = useMemo(() => {
-    return storage.getAll(KEYS.USERS).filter(u => user?.childrenIds?.includes(u.id));
-  }, [user]);
+    return users.filter(u => user?.childrenIds?.includes(u.id));
+  }, [users, user]);
 
   const selectedChild = children.find(c => c.id === selectedChildId) || children[0];
-  const childClass = selectedChild ? storage.findOne(KEYS.CLASSES, c => c.studentIds?.includes(selectedChild.id)) : null;
-  const childTeacher = childClass ? storage.findOne(KEYS.USERS, u => u.id === childClass.teacherId) : null;
+
+  const childClass = useMemo(() => (
+    selectedChild ? classes.find(c => c.studentIds?.includes(selectedChild.id)) : null
+  ), [selectedChild, classes]);
+
+  const childTeacher = useMemo(() => (
+    childClass ? users.find(u => u.id === childClass.teacherId) : null
+  ), [childClass, users]);
 
   const stats = useMemo(() => {
     if (!selectedChild) return null;
 
-    const allAttend = storage.getAll(KEYS.ATTENDANCE).filter(a => {
+    const allAttend = attendance.filter(a => {
       const d = new Date(a.date);
       return a.studentId === selectedChild.id && d.getMonth() + 1 === selectedMonth && d.getFullYear() === selectedYear;
     });
-    const allMemo = storage.getAll(KEYS.MEMORIZATION).filter(m => {
+    const allMemo = memorization.filter(m => {
       const d = new Date(m.date);
       return m.studentId === selectedChild.id && d.getMonth() + 1 === selectedMonth && d.getFullYear() === selectedYear;
     });
-    const allMemoTotal = storage.getAll(KEYS.MEMORIZATION).filter(m => m.studentId === selectedChild.id);
+    const allMemoTotal = memorization.filter(m => m.studentId === selectedChild.id);
 
     const total = allAttend.length;
     const present = allAttend.filter(a => a.status === 'present').length;
     const hizbMonth = calcTotalHizbProgress(allMemo);
     const hizbTotal = calcTotalHizbProgress(allMemoTotal);
 
-    // Yearly trend
-    const yearlyMemo = storage.getAll(KEYS.MEMORIZATION).filter(m => {
+    const yearlyMemo = memorization.filter(m => {
       const d = new Date(m.date);
       return m.studentId === selectedChild.id && d.getFullYear() === selectedYear;
     });
@@ -50,21 +58,17 @@ const ParentReports = () => {
       return { month: m, hizb: calcTotalHizbProgress(mMemo) };
     });
 
-    // Teacher notes
-    const teacherNote = childTeacher ? storage.findOne(KEYS.MONTHLY_NOTES, n =>
-      n.teacherId === childTeacher.id && n.classId === childClass?.id &&
-      n.month === selectedMonth && n.year === selectedYear
-    ) : null;
-
     return {
       attendance: { total, present, absent: total - present, rate: total ? Math.round((present / total) * 100) : 0 },
-      hizbMonth, hizbTotal, monthlyProgress, teacherNote: teacherNote?.notes,
+      hizbMonth, hizbTotal, monthlyProgress, teacherNote: null,
     };
-  }, [selectedChild, selectedMonth, selectedYear, childClass, childTeacher]);
+  }, [selectedChild, selectedMonth, selectedYear, attendance, memorization]);
 
   const isEndOfMonth = new Date().getDate() >= 25;
 
-  const schoolInfo = storage.get('tatabu_school_info', {});
+  const schoolInfo = (() => {
+    try { return JSON.parse(localStorage.getItem('tatabu_school_info') || '{}'); } catch { return {}; }
+  })();
 
   const handleExport = () => {
     if (!isEndOfMonth) return;
@@ -176,7 +180,7 @@ const ParentReports = () => {
             </div>
           </div>
 
-          {/* Teacher notes */}
+          {/* Teacher notes (shown only if available) */}
           {stats.teacherNote && (
             <div className="card p-5">
               <h3 className="font-semibold text-[var(--color-text)] mb-3">{t('reports.teacherNotes')}</h3>

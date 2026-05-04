@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { storage, KEYS } from '../../utils/storage';
+import { useData } from '../../contexts/DataContext';
 import { calcTotalHizbProgress } from '../../utils/quranData';
 import { exportAdminReportPDF } from '../../utils/pdfExport';
 import { ConfirmModal } from '../../components/common/Modal';
@@ -16,10 +16,9 @@ const AdminReports = () => {
   const [rankingClass, setRankingClass] = useState('');
   const [deleteId, setDeleteId] = useState(null);
 
-  const classes = storage.getAll(KEYS.CLASSES);
-  const users = storage.getAll(KEYS.USERS);
-  const allAttendance = storage.getAll(KEYS.ATTENDANCE);
-  const allMemo = storage.getAll(KEYS.MEMORIZATION);
+  const { users, classes, attendance: allAttendance, memorization: allMemo, loadAll } = useData();
+
+  useEffect(() => { loadAll(); }, [loadAll]);
 
   const classReports = useMemo(() => {
     return classes.map(cls => {

@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { storage, KEYS } from '../../utils/storage';
+import { useData } from '../../contexts/DataContext';
 import { calcTotalHizbProgress } from '../../utils/quranData';
 
 const evalColors = {
@@ -14,19 +14,19 @@ const evalColors = {
 const TeacherStudents = () => {
   const { user } = useAuth();
   const { t } = useLanguage();
+  const { users, classes, memorization, loadAll } = useData();
   const [search, setSearch] = useState('');
   const [filterAge, setFilterAge] = useState('');
 
-  const myClasses = useMemo(() => {
-    return storage.getAll(KEYS.CLASSES).filter(c => c.teacherId === user?.id);
-  }, [user]);
+  useEffect(() => { loadAll(); }, [loadAll]);
 
-  const allMemo = storage.getAll(KEYS.MEMORIZATION);
-  const allUsers = storage.getAll(KEYS.USERS);
+  const myClasses = useMemo(() => {
+    return classes.filter(c => c.teacherId === user?.id);
+  }, [classes, user]);
 
   const students = useMemo(() => {
     const classStudentIds = new Set(myClasses.flatMap(c => c.studentIds || []));
-    let all = allUsers.filter(u => u.role === 'student' && classStudentIds.has(u.id));
+    let all = users.filter(u => u.role === 'student' && classStudentIds.has(u.id));
 
     if (search) all = all.filter(s =>
       (s.nameAr || s.name || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -46,12 +46,12 @@ const TeacherStudents = () => {
 
     return all.map(s => {
       const cls = myClasses.find(c => c.studentIds?.includes(s.id));
-      const memos = allMemo.filter(m => m.studentId === s.id);
+      const memos = memorization.filter(m => m.studentId === s.id);
       const hizbProgress = calcTotalHizbProgress(memos);
-      const lastMemo = memos.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+      const lastMemo = [...memos].sort((a, b) => new Date(b.date) - new Date(a.date))[0];
       return { ...s, class: cls, hizbProgress, lastEvaluation: lastMemo?.evaluation };
     });
-  }, [search, filterAge, myClasses, allMemo, allUsers]);
+  }, [search, filterAge, myClasses, memorization, users]);
 
   return (
     <div className="space-y-6">
@@ -60,7 +60,6 @@ const TeacherStudents = () => {
         <p className="page-subtitle">{students.length} {t('role.student')}</p>
       </div>
 
-      {/* Filters */}
       <div className="card p-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md">
           <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={t('students.search')} className="input" />
@@ -68,7 +67,6 @@ const TeacherStudents = () => {
         </div>
       </div>
 
-      {/* Table */}
       <div className="table-wrapper">
         <table className="w-full">
           <thead className="table-head">

@@ -2,18 +2,21 @@ import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useSocket } from '../../contexts/SocketContext';
-import { storage, KEYS } from '../../utils/storage';
+import { useData } from '../../contexts/DataContext';
 
 const AdminMessages = () => {
   const { user } = useAuth();
   const { t, lang, dir } = useLanguage();
   const { sendMessage, getChatId, getConversation, getChats, messages } = useSocket();
+  const { users, loadAll } = useData();
   const [activeChatId, setActiveChatId] = useState(null);
   const [text, setText] = useState('');
   const [teacherSearch, setTeacherSearch] = useState('');
   const messagesEndRef = useRef(null);
 
-  const allUsers = storage.getAll(KEYS.USERS).filter(u => u.id !== user?.id && u.role !== 'admin');
+  useEffect(() => { loadAll(); }, [loadAll]);
+
+  const allUsers = users.filter(u => u.id !== user?.id && u.role !== 'admin');
   const teachers = allUsers.filter(u => u.role === 'teacher').filter(u =>
     !teacherSearch ||
     (u.nameAr || u.name || '').toLowerCase().includes(teacherSearch.toLowerCase()) ||
@@ -29,7 +32,7 @@ const AdminMessages = () => {
   const getOtherUser = (chatId) => {
     const ids = chatId.split('_');
     const otherId = ids.find(id => id !== user?.id);
-    return allUsers.find(u => u.id === otherId) || storage.findOne(KEYS.USERS, u => u.id === otherId);
+    return allUsers.find(u => u.id === otherId) || users.find(u => u.id === otherId);
   };
 
   const openChat = (otherId) => {

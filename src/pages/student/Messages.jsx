@@ -2,20 +2,23 @@ import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useSocket } from '../../contexts/SocketContext';
-import { storage, KEYS } from '../../utils/storage';
+import { useData } from '../../contexts/DataContext';
 
 const StudentMessages = () => {
   const { user } = useAuth();
   const { t, lang } = useLanguage();
   const { sendMessage, getChatId, getConversation, messages } = useSocket();
+  const { users, classes, loadAll } = useData();
   const [activeChatId, setActiveChatId] = useState(null);
   const [activeChatLabel, setActiveChatLabel] = useState('');
   const [chatType, setChatType] = useState('private');
   const [text, setText] = useState('');
   const messagesEndRef = useRef(null);
 
-  const myClass = storage.findOne(KEYS.CLASSES, c => c.studentIds?.includes(user?.id));
-  const allUsers = storage.getAll(KEYS.USERS);
+  useEffect(() => { loadAll(); }, [loadAll]);
+
+  const myClass = classes.find(c => c.studentIds?.includes(user?.id));
+  const allUsers = users;
   const myTeacher = myClass ? allUsers.find(u => u.id === myClass.teacherId) : null;
   const classmates = myClass ? allUsers.filter(u => u.role === 'student' && myClass.studentIds?.includes(u.id) && u.id !== user?.id) : [];
 

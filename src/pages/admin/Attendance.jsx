@@ -1,31 +1,28 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { storage, KEYS } from '../../utils/storage';
+import { useData } from '../../contexts/DataContext';
 import { formatHijri } from '../../utils/hijriDate';
 
 const AdminAttendance = () => {
   const { t, lang } = useLanguage();
+  const { users, classes, attendance, loadAll } = useData();
   const [filterClass, setFilterClass] = useState('');
   const [filterDate, setFilterDate] = useState('');
   const [search, setSearch] = useState('');
 
-  const classes = storage.getAll(KEYS.CLASSES);
-  const users = storage.getAll(KEYS.USERS);
+  useEffect(() => { loadAll(); }, [loadAll]);
 
   const records = useMemo(() => {
-    let all = storage.getAll(KEYS.ATTENDANCE);
+    let all = attendance;
     if (filterClass) all = all.filter(a => a.classId === filterClass);
     if (filterDate) all = all.filter(a => a.date === filterDate);
-
     return all.map(a => {
       const student = users.find(u => u.id === a.studentId);
       const cls = classes.find(c => c.id === a.classId);
-      return { ...a, studentName: student?.name || '?', className: cls?.name || '?' };
-    }).filter(a => {
-      if (search) return a.studentName.toLowerCase().includes(search.toLowerCase());
-      return true;
-    }).sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [filterClass, filterDate, search, users, classes]);
+      return { ...a, studentName: student?.nameAr || student?.name || '?', className: cls?.name || '?' };
+    }).filter(a => !search || a.studentName.toLowerCase().includes(search.toLowerCase()))
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [attendance, users, classes, filterClass, filterDate, search]);
 
   const stats = useMemo(() => {
     const total = records.length;
@@ -41,7 +38,6 @@ const AdminAttendance = () => {
         <p className="page-subtitle">{records.length} {t('common.total').toLowerCase()}</p>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           { label: t('attend.present'), value: stats.present, color: 'bg-brand-green-600' },
@@ -55,7 +51,6 @@ const AdminAttendance = () => {
         ))}
       </div>
 
-      {/* Filters */}
       <div className="card p-4">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={t('attendance.search')} className="input" />
@@ -67,7 +62,6 @@ const AdminAttendance = () => {
         </div>
       </div>
 
-      {/* Table */}
       <div className="table-wrapper">
         <table className="w-full">
           <thead className="table-head">

@@ -1,7 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { storage, KEYS } from '../../utils/storage';
-import { generateId } from '../../utils/auth';
+import { useData } from '../../contexts/DataContext';
 import Modal, { ConfirmModal } from '../../components/common/Modal';
 
 const DAYS = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
@@ -9,30 +8,31 @@ const PRAYERS = ['after_fajr','after_dhuhr','after_asr','after_maghrib','after_i
 
 const AdminClasses = () => {
   const { t } = useLanguage();
+  const { users, classes, academicYears, loadAll, addClass, updateClass, removeClass } = useData();
   const [search, setSearch] = useState('');
   const [filterDay, setFilterDay] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editClass, setEditClass] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
-  const [showStudentsModal, setShowStudentsModal] = useState(null); // classId
   const [toast, setToast] = useState(null);
+  const [formError, setFormError] = useState('');
 
+  useEffect(() => { loadAll(); }, [loadAll]);
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
+  const teachers = users.filter(u => u.role === 'teacher');
+  const allStudents = users.filter(u => u.role === 'student');
+  const activeYear = academicYears.find(y => y.isActive);
+
   const emptyForm = {
-    name: '', teacherId: '', academicYearId: '', sessionsPerWeek: 3,
+    name: '', teacherId: '', academicYearId: activeYear?.id || '', sessionsPerWeek: 3,
     schedule: [{ day: 'monday', timeType: 'fixed', startTime: '16:00', endTime: '17:30' }],
     studentIds: [],
   };
   const [form, setForm] = useState(emptyForm);
 
-  const teachers = storage.getAll(KEYS.USERS).filter(u => u.role === 'teacher');
-  const academicYears = storage.getAll(KEYS.ACADEMIC_YEARS);
-  const allStudents = storage.getAll(KEYS.USERS).filter(u => u.role === 'student');
-  const activeYear = academicYears.find(y => y.isActive);
-
-  const classes = useMemo(() => {
-    let all = storage.getAll(KEYS.CLASSES);
+  const filteredClasses = useMemo(() => {
+    let all = classes;
     if (search) all = all.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
     if (filterDay) all = all.filter(c => c.schedule?.some(s => s.day === filterDay));
     return all.map(cls => ({
@@ -40,85 +40,64 @@ const AdminClasses = () => {
       teacher: teachers.find(t => t.id === cls.teacherId),
       year: academicYears.find(y => y.id === cls.academicYearId),
     }));
-  }, [search, filterDay, teachers, academicYears]);
+  }, [classes, teachers, academicYears, search, filterDay]);
 
-  const openAdd = () => {
-    setEditClass(null);
-    setForm({ ...emptyForm, academicYearId: activeYear?.id || '' });
-    setShowModal(true);
-  };
-
+  const openAdd = () => { setEditClass(null); setForm({ ...emptyForm, academicYearId: activeYear?.id || '' }); setFormError(''); setShowModal(true); };
   const openEdit = (cls) => {
     setEditClass(cls);
-    setForm({
-      name: cls.name,
-      teacherId: cls.teacherId,
-      academicYearId: activeYear?.id || cls.academicYearId,
-      sessionsPerWeek: cls.sessionsPerWeek,
-      schedule: cls.schedule || [],
-      studentIds: cls.studentIds || [],
-    });
+    setForm({ name: cls.name, teacherId: cls.teacherId, academicYearId: activeYear?.id || cls.academicYearId, sessionsPerWeek: cls.sessionsPerWeek, schedule: cls.schedule || [], studentIds: cls.studentIds || [] });
+    setFormError('');
     setShowModal(true);
   };
 
-  const addScheduleRow = () => {
-    setForm(f => ({ ...f, schedule: [...f.schedule, { day: 'monday', timeType: 'fixed', startTime: '', endTime: '' }] }));
-  };
+  const addScheduleRow = () => setForm(f => ({ ...f, schedule: [...f.schedule, { day: 'monday', timeType: 'fixed', startTime: '', endTime: '' }] }));
+  const updateScheduleRow = (idx, field, value) => setForm(f => { const sched = [...f.schedule]; sched[idx] = { ...sched[idx], [field]: value }; return { ...f, schedule: sched }; });
+  const removeScheduleRow = (idx) => setForm(f => ({ ...f, schedule: f.schedule.filter((_, i) => i !== idx) }));
+  const toggleStudent = (studentId) => setForm(f => ({ ...f, studentIds: f.studentIds.includes(studentId) ? f.studentIds.filter(id => id !== studentId) : [...f.studentIds, studentId] }));
 
-  const updateScheduleRow = (idx, field, value) => {
-    setForm(f => {
-      const sched = [...f.schedule];
-      sched[idx] = { ...sched[idx], [field]: value };
-      return { ...f, schedule: sched };
-    });
-  };
-
-  const removeScheduleRow = (idx) => {
-    setForm(f => ({ ...f, schedule: f.schedule.filter((_, i) => i !== idx) }));
-  };
-
-  const toggleStudent = (studentId) => {
-    setForm(f => {
-      const ids = f.studentIds.includes(studentId)
-        ? f.studentIds.filter(id => id !== studentId)
-        : [...f.studentIds, studentId];
-      return { ...f, studentIds: ids };
-    });
-  };
-
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    if (editClass) {
-      storage.update(KEYS.CLASSES, editClass.id, form);
-    } else {
-      storage.add(KEYS.CLASSES, { ...form, id: generateId(), createdAt: new Date().toISOString() });
+    setFormError('');
+    if (!activeYear && !form.academicYearId) {
+      setFormError('No active academic year. Go to Dashboard → Academic Years and create one first.');
+      return;
     }
-    setShowModal(false);
-    showToast(editClass ? t('common.updated') : t('common.created'));
+    if (!form.teacherId) {
+      setFormError('Please select a teacher.');
+      return;
+    }
+    try {
+      if (editClass) {
+        await updateClass(editClass.id, form);
+        setShowModal(false);
+        showToast(t('common.updated'));
+      } else {
+        await addClass({ ...form, academicYearId: activeYear?.id || form.academicYearId });
+        setShowModal(false);
+        showToast(t('common.created'));
+      }
+    } catch (err) {
+      setFormError(err.data?.message || err.message || 'Save failed. Check the backend console.');
+    }
   };
 
-  const handleDelete = (id) => {
-    storage.delete(KEYS.CLASSES, id);
-    showToast(t('common.deleted'));
+  const handleDelete = async (id) => {
+    try { await removeClass(id); showToast(t('common.deleted')); } catch (err) { showToast(err.message); }
   };
 
-  // Available students (not in any other class, or in this class already)
   const availableStudents = allStudents.filter(s => {
-    const allClasses = storage.getAll(KEYS.CLASSES);
-    const inOtherClass = allClasses.some(c => c.id !== editClass?.id && c.studentIds?.includes(s.id));
+    const inOtherClass = classes.some(c => c.id !== editClass?.id && c.studentIds?.includes(s.id));
     return !inOtherClass;
   });
 
   return (
     <div className="space-y-6">
-      {toast && (
-        <div className="fixed top-20 right-4 z-50 px-4 py-2.5 rounded-xl shadow-lg text-white text-sm bg-brand-green-600">{toast}</div>
-      )}
+      {toast && <div className="fixed top-20 right-4 z-[9999] px-4 py-2.5 rounded-xl shadow-lg text-white text-sm bg-brand-green-600">{toast}</div>}
 
       <div className="page-header flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="page-title">{t('classes.title')}</h1>
-          <p className="page-subtitle">{classes.length} {t('nav.classes').toLowerCase()}</p>
+          <p className="page-subtitle">{filteredClasses.length} {t('nav.classes').toLowerCase()}</p>
         </div>
         <button onClick={openAdd} className="btn-primary">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
@@ -126,7 +105,6 @@ const AdminClasses = () => {
         </button>
       </div>
 
-      {/* Filters */}
       <div className="card p-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg">
           <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={t('classes.search')} className="input" />
@@ -137,11 +115,10 @@ const AdminClasses = () => {
         </div>
       </div>
 
-      {/* Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {classes.length === 0 ? (
+        {filteredClasses.length === 0 ? (
           <div className="col-span-3 card p-10 text-center text-[var(--color-text-muted)]">{t('common.noData')}</div>
-        ) : classes.map(cls => (
+        ) : filteredClasses.map(cls => (
           <div key={cls.id} className="card p-5 space-y-3 hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between">
               <div>
@@ -157,27 +134,16 @@ const AdminClasses = () => {
                 </button>
               </div>
             </div>
-
             {cls.teacher && (
               <div className="flex items-center gap-2 text-sm">
-                <div className="w-6 h-6 rounded-lg bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
-                  {(cls.teacher.nameAr || cls.teacher.name || '?').charAt(0)}
-                </div>
+                <div className="w-6 h-6 rounded-lg bg-blue-600 flex items-center justify-center text-white text-xs font-bold">{(cls.teacher.nameAr || cls.teacher.name || '?').charAt(0)}</div>
                 <span className="text-[var(--color-text-muted)]">{cls.teacher.nameAr || cls.teacher.name}</span>
               </div>
             )}
-
             <div className="flex items-center gap-4 text-xs text-[var(--color-text-muted)]">
-              <span className="flex items-center gap-1">
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                {cls.sessionsPerWeek} {t('classes.sessions').toLowerCase()}
-              </span>
-              <span className="flex items-center gap-1">
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                {cls.studentIds?.length || 0} {t('nav.students').toLowerCase()}
-              </span>
+              <span>{cls.sessionsPerWeek} {t('classes.sessions').toLowerCase()}</span>
+              <span>{cls.studentIds?.length || 0} {t('nav.students').toLowerCase()}</span>
             </div>
-
             {cls.schedule?.length > 0 && (
               <div className="flex flex-wrap gap-1">
                 {cls.schedule.map((s, i) => (
@@ -191,30 +157,17 @@ const AdminClasses = () => {
         ))}
       </div>
 
-      {/* Add/Edit Modal */}
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={editClass ? t('classes.edit') : t('classes.add')} size="lg"
-        footer={
-          <>
-            <button onClick={() => setShowModal(false)} className="btn-ghost">{t('common.cancel')}</button>
-            <button form="class-form" type="submit" className="btn-primary">{t('common.save')}</button>
-          </>
-        }
-      >
+        footer={<><button onClick={() => setShowModal(false)} className="btn-ghost">{t('common.cancel')}</button><button form="class-form" type="submit" className="btn-primary">{t('common.save')}</button></>}>
         <form id="class-form" onSubmit={handleSave} className="space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="label">{t('classes.name')}</label>
-              <input type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="input" required />
-            </div>
-            <div>
-              <label className="label">{t('classes.sessions')}</label>
-              <input type="number" min="1" max="7" value={form.sessionsPerWeek} onChange={e => setForm({...form, sessionsPerWeek: parseInt(e.target.value)})} className="input" required />
-            </div>
+            <div><label className="label">{t('classes.name')}</label><input type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="input" required /></div>
+            <div><label className="label">{t('classes.sessions')}</label><input type="number" min="1" max="7" value={form.sessionsPerWeek} onChange={e => setForm({...form, sessionsPerWeek: parseInt(e.target.value)})} className="input" required /></div>
             <div>
               <label className="label">{t('classes.teacher')}</label>
               <select value={form.teacherId} onChange={e => setForm({...form, teacherId: e.target.value})} className="select" required>
                 <option value="">{t('common.select')}</option>
-                {teachers.map(t => <option key={t.id} value={t.id}>{t.nameAr || t.name}</option>)}
+                {teachers.map(teacher => <option key={teacher.id} value={teacher.id}>{teacher.nameAr || teacher.name}</option>)}
               </select>
             </div>
             <div>
@@ -226,7 +179,6 @@ const AdminClasses = () => {
             </div>
           </div>
 
-          {/* Schedule */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="label mb-0">{t('classes.schedule')}</label>
@@ -244,11 +196,11 @@ const AdminClasses = () => {
                   </select>
                   {s.timeType === 'fixed' ? (
                     <>
-                      <input type="time" value={s.startTime} onChange={e => updateScheduleRow(i, 'startTime', e.target.value)} className="input flex-1 min-w-24" />
-                      <input type="time" value={s.endTime} onChange={e => updateScheduleRow(i, 'endTime', e.target.value)} className="input flex-1 min-w-24" />
+                      <input type="time" value={s.startTime || ''} onChange={e => updateScheduleRow(i, 'startTime', e.target.value)} className="input flex-1 min-w-24" />
+                      <input type="time" value={s.endTime || ''} onChange={e => updateScheduleRow(i, 'endTime', e.target.value)} className="input flex-1 min-w-24" />
                     </>
                   ) : (
-                    <select value={s.prayerRef} onChange={e => updateScheduleRow(i, 'prayerRef', e.target.value)} className="select flex-1 min-w-40">
+                    <select value={s.prayerRef || ''} onChange={e => updateScheduleRow(i, 'prayerRef', e.target.value)} className="select flex-1 min-w-40">
                       {PRAYERS.map(p => <option key={p} value={p}>{t(`prayer.${p}`)}</option>)}
                     </select>
                   )}
@@ -260,6 +212,25 @@ const AdminClasses = () => {
             </div>
           </div>
 
+          {availableStudents.length > 0 && (
+            <div>
+              <label className="label">{t('classes.students')}</label>
+              <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-2 border border-[var(--color-border)] rounded-xl">
+                {availableStudents.map(s => (
+                  <button key={s.id} type="button" onClick={() => toggleStudent(s.id)}
+                    className={`px-3 py-1.5 rounded-xl border text-sm transition-all ${form.studentIds.includes(s.id) ? 'border-brand-green-500 bg-brand-green-50 dark:bg-brand-green-900/20 text-brand-green-700' : 'border-[var(--color-border)] text-[var(--color-text-muted)]'}`}>
+                    {s.nameAr || s.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {formError && (
+            <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm">
+              {formError}
+            </div>
+          )}
         </form>
       </Modal>
 

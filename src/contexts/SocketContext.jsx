@@ -1,63 +1,8 @@
 import { createContext, useContext, useEffect, useRef, useCallback, useState } from 'react';
-import { storage, KEYS } from '../utils/storage';
-import { generateId } from '../utils/auth';
+import { io } from 'socket.io-client';
+import { messagesAPI } from '../services/api';
 
 const SocketContext = createContext(null);
-
-// Mock socket using BroadcastChannel + localStorage polling
-class MockSocket {
-  constructor(userId) {
-    this.userId = userId;
-    this.listeners = {};
-    this.connected = true;
-    this.channel = null;
-    try {
-      this.channel = new BroadcastChannel('tatabu_messages');
-    } catch {
-      // BroadcastChannel not available (e.g. older browsers)
-    }
-  }
-
-  on(event, callback) {
-    if (!this.listeners[event]) this.listeners[event] = [];
-    this.listeners[event].push(callback);
-    return this;
-  }
-
-  off(event) {
-    delete this.listeners[event];
-  }
-
-  emit(event, data) {
-    this.trigger(event, data);
-    if (this.channel) {
-      try {
-        this.channel.postMessage({ event, data, from: this.userId });
-      } catch {}
-    }
-  }
-
-  trigger(event, data) {
-    (this.listeners[event] || []).forEach(cb => cb(data));
-  }
-
-  listen() {
-    if (this.channel) {
-      this.channel.onmessage = (e) => {
-        if (e.data?.from !== this.userId) {
-          this.trigger(e.data.event, e.data.data);
-        }
-      };
-    }
-  }
-
-  disconnect() {
-    this.connected = false;
-    if (this.channel) {
-      try { this.channel.close(); } catch {}
-    }
-  }
-}
 
 export const SocketProvider = ({ children, userId }) => {
   const socketRef = useRef(null);
@@ -65,68 +10,41 @@ export const SocketProvider = ({ children, userId }) => {
 
   useEffect(() => {
     if (!userId) return;
-    const sock = new MockSocket(userId);
-    sock.listen();
-    socketRef.current = sock;
 
-    // Load initial messages
-    const allMsgs = storage.getAll(KEYS.MESSAGES);
-    setMessages(allMsgs);
+    // Load initial messages from backend
+    messagesAPI.getAll()
+      .then(r => setMessages(r.data))
+      .catch(err => console.error('[Socket] load messages failed:', err.message));
 
-    // Poll for new messages every 3 seconds
-    const interval = setInterval(() => {
-      const fresh = storage.getAll(KEYS.MESSAGES);
-      setMessages(fresh);
-    }, 3000);
+    // Connect to real Socket.io
+    const socket = io({ query: { userId }, transports: ['websocket', 'polling'] });
+    socketRef.current = socket;
 
-    // Also listen to storage events
-    const handleStorage = (e) => {
-      if (e.key === KEYS.MESSAGES) {
-        try {
-          setMessages(JSON.parse(e.newValue) || []);
-        } catch {}
-      }
-    };
-    window.addEventListener('storage', handleStorage);
+    socket.on('new_message', (msg) => {
+      setMessages(prev => {
+        if (prev.find(m => m.id === msg.id)) return prev;
+        return [...prev, msg];
+      });
+    });
 
     return () => {
-      sock.disconnect();
-      clearInterval(interval);
-      window.removeEventListener('storage', handleStorage);
+      socket.disconnect();
     };
   }, [userId]);
 
-  const sendMessage = useCallback((toId, message, type = 'private') => {
+  const sendMessage = useCallback(async (toId, message, type = 'private') => {
     if (!userId) return;
-    const chatId = type === 'group'
-      ? `group_${toId}`
-      : [userId, toId].sort().join('_');
-
-    const msg = {
-      id: generateId(),
-      fromId: userId,
-      toId,
-      message: message.trim(),
-      timestamp: new Date().toISOString(),
-      type,
-      chatId,
-    };
-
-    storage.add(KEYS.MESSAGES, msg);
-    setMessages(prev => [...prev, msg]);
-
-    // Notify via BroadcastChannel
-    if (socketRef.current) {
-      socketRef.current.emit('new_message', msg);
+    try {
+      const res = await messagesAPI.send(toId, message, type);
+      const msg = res.data;
+      setMessages(prev => {
+        if (prev.find(m => m.id === msg.id)) return prev;
+        return [...prev, msg];
+      });
+      return msg;
+    } catch (err) {
+      console.error('[Socket] sendMessage failed:', err.message);
     }
-
-    // Trigger storage event for cross-tab sync
-    window.dispatchEvent(new StorageEvent('storage', {
-      key: KEYS.MESSAGES,
-      newValue: JSON.stringify(storage.getAll(KEYS.MESSAGES)),
-    }));
-
-    return msg;
   }, [userId]);
 
   const getChatId = useCallback((otherId, type = 'private') => {
@@ -141,12 +59,10 @@ export const SocketProvider = ({ children, userId }) => {
   }, [messages]);
 
   const getChats = useCallback(() => {
-    // Get all unique chat IDs involving this user
     const relevantMsgs = messages.filter(m =>
       m.fromId === userId || m.toId === userId ||
       (m.type === 'group' && m.chatId?.startsWith('group_'))
     );
-
     const chatMap = new Map();
     relevantMsgs.forEach(m => {
       const existing = chatMap.get(m.chatId);
@@ -154,13 +70,15 @@ export const SocketProvider = ({ children, userId }) => {
         chatMap.set(m.chatId, m);
       }
     });
-
     return Array.from(chatMap.values())
       .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   }, [messages, userId]);
 
   return (
-    <SocketContext.Provider value={{ socket: socketRef.current, sendMessage, getChatId, getConversation, getChats, messages }}>
+    <SocketContext.Provider value={{
+      socket: socketRef.current, sendMessage, getChatId,
+      getConversation, getChats, messages,
+    }}>
       {children}
     </SocketContext.Provider>
   );

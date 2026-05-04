@@ -1,0 +1,140 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid()) @db.VarChar(36)
+  name          String
+  nameAr        String?
+  nameEn        String?
+  email         String?  @unique @db.VarChar(191)
+  username      String?  @unique @db.VarChar(191)
+  password      String
+  role          String
+  gender        String?
+  age           Int?
+  phone         String?
+  parentPhone   String?
+  hizbMemorized Float    @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  parentId String? @db.VarChar(36)
+  parent   User?   @relation("ParentChildren", fields: [parentId], references: [id], onDelete: SetNull)
+  children User[]  @relation("ParentChildren")
+
+  teacherClasses   Class[]        @relation("TeacherClasses")
+  classEnrollments ClassStudent[]
+
+  attendances   Attendance[]
+  memorizations Memorization[]
+
+  sentMessages     Message[]      @relation("MessageFrom")
+  receivedMessages Message[]      @relation("MessageTo")
+
+  sentNotifications Notification[]
+}
+
+model AcademicYear {
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  name      String
+  startDate String
+  endDate   String
+  isActive  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  classes       Class[]
+  attendances   Attendance[]
+  memorizations Memorization[]
+}
+
+model Class {
+  id              String   @id @default(uuid()) @db.VarChar(36)
+  name            String
+  sessionsPerWeek Int      @default(3)
+  schedule        String   @default("[]") @db.VarChar(2000)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  teacherId      String       @db.VarChar(36)
+  teacher        User         @relation("TeacherClasses", fields: [teacherId], references: [id])
+  academicYearId String       @db.VarChar(36)
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
+
+  students      ClassStudent[]
+  attendances   Attendance[]
+  memorizations Memorization[]
+}
+
+model ClassStudent {
+  classId   String @db.VarChar(36)
+  studentId String @db.VarChar(36)
+  class     Class  @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student   User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@id([classId, studentId])
+}
+
+model Attendance {
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  date      String   @db.VarChar(10)
+  status    String   @default("present")
+  createdAt DateTime @default(now())
+
+  studentId      String       @db.VarChar(36)
+  student        User         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  classId        String       @db.VarChar(36)
+  class          Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
+  academicYearId String       @db.VarChar(36)
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
+
+  @@unique([studentId, classId, date])
+}
+
+model Memorization {
+  id         String   @id @default(uuid()) @db.VarChar(36)
+  date       String   @db.VarChar(10)
+  surahId    Int
+  fromAyah   Int
+  toAyah     Int
+  evaluation String
+  createdAt  DateTime @default(now())
+
+  studentId      String       @db.VarChar(36)
+  student        User         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  classId        String       @db.VarChar(36)
+  class          Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
+  academicYearId String       @db.VarChar(36)
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
+}
+
+model Message {
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  message   String   @db.Text
+  type      String   @default("private")
+  chatId    String   @db.VarChar(100)
+  timestamp DateTime @default(now())
+
+  fromId String @db.VarChar(36)
+  from   User   @relation("MessageFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  toId   String @db.VarChar(36)
+  to     User   @relation("MessageTo", fields: [toId], references: [id], onDelete: Cascade)
+
+  @@index([chatId])
+}
+
+model Notification {
+  id         String   @id @default(uuid()) @db.VarChar(36)
+  message    String   @db.Text
+  senderName String
+  timestamp  DateTime @default(now())
+  readBy     String   @default("[]") @db.VarChar(4000)
+
+  senderId String @db.VarChar(36)
+  sender   User   @relation(fields: [senderId], references: [id], onDelete: Cascade)
+}

@@ -1,8 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { storage, KEYS } from '../../utils/storage';
+import { useData } from '../../contexts/DataContext';
 import { calcTotalHizbProgress } from '../../utils/quranData';
-import { generateId, hashPassword } from '../../utils/auth';
 import Modal, { ConfirmModal } from '../../components/common/Modal';
 
 const generateUsername = (nameEn) => {
@@ -14,6 +13,8 @@ const generateUsername = (nameEn) => {
 
 const AdminStudents = () => {
   const { t, lang } = useLanguage();
+  const { users, classes, memorization, loadAll, addUser, updateUser, removeUser } = useData();
+
   const [search, setSearch] = useState('');
   const [filterClass, setFilterClass] = useState('');
   const [filterGender, setFilterGender] = useState('');
@@ -26,6 +27,8 @@ const AdminStudents = () => {
   const [editingStudent, setEditingStudent] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
 
+  useEffect(() => { loadAll(); }, [loadAll]);
+
   const emptyForm = {
     nameAr: '', nameEn: '', username: '', password: '', phone: '', parentPhone: '',
     gender: 'male', age: '', parentId: '', classId: '', hizbMemorized: '0',
@@ -34,12 +37,10 @@ const AdminStudents = () => {
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
-  const classes = storage.getAll(KEYS.CLASSES);
-  const memoRecords = storage.getAll(KEYS.MEMORIZATION);
-  const parents = storage.getAll(KEYS.USERS).filter(u => u.role === 'parent');
+  const parents = users.filter(u => u.role === 'parent');
 
   const students = useMemo(() => {
-    let all = storage.getAll(KEYS.USERS).filter(u => u.role === 'student');
+    let all = users.filter(u => u.role === 'student');
 
     if (search) all = all.filter(s =>
       (s.nameAr || s.name || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -54,16 +55,16 @@ const AdminStudents = () => {
 
     return all.map(s => {
       const studentClass = classes.find(c => c.studentIds?.includes(s.id));
-      const studentMemo = memoRecords.filter(m => m.studentId === s.id);
+      const studentMemo = memorization.filter(m => m.studentId === s.id);
       const hizbProgress = calcTotalHizbProgress(studentMemo);
-      const parent = storage.findOne(KEYS.USERS, u => u.id === s.parentId);
+      const parent = users.find(u => u.id === s.parentId);
       return { ...s, class: studentClass, hizbProgress, parent };
     }).filter(s => {
       if (hizbFrom && s.hizbProgress < parseFloat(hizbFrom)) return false;
       if (hizbTo && s.hizbProgress > parseFloat(hizbTo)) return false;
       return true;
     });
-  }, [search, filterClass, filterGender, filterAge, hizbFrom, hizbTo, memoRecords]);
+  }, [users, classes, memorization, search, filterClass, filterGender, filterAge, hizbFrom, hizbTo]);
 
   const openAdd = () => {
     setEditingStudent(null);
@@ -90,115 +91,61 @@ const AdminStudents = () => {
     setShowModal(true);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const displayName = form.nameAr || form.nameEn;
-
-    if (editingStudent) {
-      // Edit
-      const updates = {
-        name: displayName,
-        nameAr: form.nameAr,
-        nameEn: form.nameEn,
-        username: form.username,
-        phone: form.phone,
-        parentPhone: form.parentPhone,
-        gender: form.gender,
-        age: parseInt(form.age) || 0,
-        parentId: form.parentId,
-        hizbMemorized: parseFloat(form.hizbMemorized) || 0,
-      };
-      if (form.password) updates.password = hashPassword(form.password);
-      storage.update(KEYS.USERS, editingStudent.id, updates);
-
-      // Update class assignment
-      const oldClass = classes.find(c => c.studentIds?.includes(editingStudent.id));
-      if (oldClass && oldClass.id !== form.classId) {
-        storage.update(KEYS.CLASSES, oldClass.id, {
-          studentIds: (oldClass.studentIds || []).filter(id => id !== editingStudent.id),
+    try {
+      if (editingStudent) {
+        const updates = {
+          name: displayName,
+          nameAr: form.nameAr,
+          nameEn: form.nameEn,
+          username: form.username,
+          phone: form.phone,
+          parentPhone: form.parentPhone,
+          gender: form.gender,
+          age: parseInt(form.age) || 0,
+          parentId: form.parentId,
+          hizbMemorized: parseFloat(form.hizbMemorized) || 0,
+          classId: form.classId,
+        };
+        if (form.password) updates.password = form.password;
+        await updateUser(editingStudent.id, updates);
+        showToast(t('common.updated'));
+      } else {
+        const autoUsername = form.username || generateUsername(form.nameEn);
+        await addUser({
+          name: displayName,
+          nameAr: form.nameAr,
+          nameEn: form.nameEn,
+          username: autoUsername,
+          phone: form.phone,
+          parentPhone: form.parentPhone,
+          password: form.password || 'Student123!',
+          role: 'student',
+          gender: form.gender,
+          age: parseInt(form.age) || 0,
+          parentId: form.parentId,
+          hizbMemorized: parseFloat(form.hizbMemorized) || 0,
+          classId: form.classId,
         });
+        showToast(t('common.created'));
       }
-      if (form.classId && form.classId !== oldClass?.id) {
-        const newCls = storage.findOne(KEYS.CLASSES, c => c.id === form.classId);
-        if (newCls) {
-          storage.update(KEYS.CLASSES, newCls.id, {
-            studentIds: [...(newCls.studentIds || []), editingStudent.id],
-          });
-        }
-      }
-
-      // Update parent link
-      if (editingStudent.parentId !== form.parentId) {
-        if (editingStudent.parentId) {
-          const oldParent = storage.findOne(KEYS.USERS, u => u.id === editingStudent.parentId);
-          if (oldParent) {
-            storage.update(KEYS.USERS, oldParent.id, {
-              childrenIds: (oldParent.childrenIds || []).filter(id => id !== editingStudent.id),
-            });
-          }
-        }
-        if (form.parentId) {
-          const newParent = storage.findOne(KEYS.USERS, u => u.id === form.parentId);
-          if (newParent) {
-            storage.update(KEYS.USERS, newParent.id, {
-              childrenIds: [...(newParent.childrenIds || []), editingStudent.id],
-            });
-          }
-        }
-      }
-
-      showToast(t('common.updated'));
-    } else {
-      // Add
-      const autoUsername = form.username || generateUsername(form.nameEn, form.nameAr);
-      const newStudent = {
-        id: generateId(),
-        name: displayName,
-        nameAr: form.nameAr,
-        nameEn: form.nameEn,
-        username: autoUsername,
-        phone: form.phone,
-        parentPhone: form.parentPhone,
-        password: hashPassword(form.password || 'Student123!'),
-        role: 'student',
-        gender: form.gender,
-        age: parseInt(form.age) || 0,
-        parentId: form.parentId,
-        hizbMemorized: parseFloat(form.hizbMemorized) || 0,
-        createdAt: new Date().toISOString(),
-      };
-
-      if (form.parentId) {
-        const parent = storage.findOne(KEYS.USERS, u => u.id === form.parentId);
-        if (parent) {
-          storage.update(KEYS.USERS, parent.id, {
-            childrenIds: [...(parent.childrenIds || []), newStudent.id],
-          });
-        }
-      }
-
-      storage.add(KEYS.USERS, newStudent);
-
-      if (form.classId) {
-        const cls = storage.findOne(KEYS.CLASSES, c => c.id === form.classId);
-        if (cls) {
-          storage.update(KEYS.CLASSES, cls.id, {
-            studentIds: [...(cls.studentIds || []), newStudent.id],
-          });
-        }
-      }
-
-      showToast(t('common.created'));
+      setShowModal(false);
+      setForm(emptyForm);
+      setEditingStudent(null);
+    } catch (err) {
+      showToast(err.message, 'error');
     }
-
-    setShowModal(false);
-    setForm(emptyForm);
-    setEditingStudent(null);
   };
 
-  const handleDelete = (id) => {
-    storage.delete(KEYS.USERS, id);
-    showToast(t('common.deleted'));
+  const handleDelete = async (id) => {
+    try {
+      await removeUser(id);
+      showToast(t('common.deleted'));
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
   };
 
   return (
@@ -213,14 +160,11 @@ const AdminStudents = () => {
           <p className="page-subtitle">{students.length} {t('role.student')}</p>
         </div>
         <button onClick={openAdd} className="btn-primary">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
           {t('students.add')}
         </button>
       </div>
 
-      {/* Filters */}
       <div className="card p-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
           <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={t('students.search')} className="input" />
@@ -244,7 +188,6 @@ const AdminStudents = () => {
         </div>
       </div>
 
-      {/* Table */}
       <div className="table-wrapper">
         <table className="w-full">
           <thead className="table-head">
@@ -267,20 +210,14 @@ const AdminStudents = () => {
                 <td className="table-td">
                   <div>
                     <p className="font-medium">{lang === 'ar' ? (s.nameAr || s.name) : (s.nameEn || s.nameAr || s.name)}</p>
-                    {lang === 'ar' && s.parent && (
-                      <p className="text-xs text-[var(--color-text-muted)]">{s.parent.nameAr || s.parent.name}</p>
-                    )}
-                    {lang !== 'ar' && (s.nameEn && s.nameAr) && (
-                      <p className="text-xs text-[var(--color-text-muted)]">{s.nameAr}</p>
-                    )}
+                    {lang === 'ar' && s.parent && <p className="text-xs text-[var(--color-text-muted)]">{s.parent.nameAr || s.parent.name}</p>}
+                    {lang !== 'ar' && (s.nameEn && s.nameAr) && <p className="text-xs text-[var(--color-text-muted)]">{s.nameAr}</p>}
                   </div>
                 </td>
                 <td className="table-td">
                   {s.class ? (
                     <span className="badge bg-brand-green-100 text-brand-green-700 dark:bg-brand-green-900/30 dark:text-brand-green-400">{s.class.name}</span>
-                  ) : (
-                    <span className="text-[var(--color-text-muted)] text-xs">—</span>
-                  )}
+                  ) : <span className="text-[var(--color-text-muted)] text-xs">—</span>}
                 </td>
                 <td className="table-td">
                   <span className={`badge ${s.gender === 'male' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400'}`}>
@@ -314,7 +251,6 @@ const AdminStudents = () => {
         </table>
       </div>
 
-      {/* Add/Edit Modal */}
       <Modal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
@@ -338,20 +274,14 @@ const AdminStudents = () => {
               <input type="text" value={form.nameEn} onChange={e => {
                 const nameEn = e.target.value;
                 const updates = { nameEn };
-                if (!editingStudent) updates.username = generateUsername(nameEn, form.nameAr);
+                if (!editingStudent) updates.username = generateUsername(nameEn);
                 setForm({...form, ...updates});
               }} className="input" placeholder="Name in English" />
             </div>
           </div>
           <div>
             <label className="label">{t('students.username')}</label>
-            <input
-              type="text"
-              value={form.username}
-              onChange={e => setForm({...form, username: e.target.value})}
-              className="input"
-              placeholder={!editingStudent ? t('students.nameEn') + ' →' : ''}
-            />
+            <input type="text" value={form.username} onChange={e => setForm({...form, username: e.target.value})} className="input" />
           </div>
           {(() => {
             const ageNum = parseInt(form.age) || 0;
@@ -378,21 +308,9 @@ const AdminStudents = () => {
           <div>
             <label className="label">{editingStudent ? t('auth.password') + ' (' + t('common.notes') + ')' : t('auth.password')}</label>
             <div className="relative">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={form.password}
-                onChange={e => setForm({...form, password: e.target.value})}
-                className="input pr-10"
-                required={!editingStudent}
-                placeholder={editingStudent ? t('common.notes') : ''}
-              />
-              <button type="button" onClick={() => setShowPassword(!showPassword)}
-                className="absolute top-1/2 -translate-y-1/2 right-3 text-[var(--color-text-muted)] hover:text-brand-green-600">
-                {showPassword ? (
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
-                ) : (
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                )}
+              <input type={showPassword ? 'text' : 'password'} value={form.password} onChange={e => setForm({...form, password: e.target.value})} className="input pr-10" required={!editingStudent} placeholder={editingStudent ? t('common.notes') : ''} />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute top-1/2 -translate-y-1/2 right-3 text-[var(--color-text-muted)] hover:text-brand-green-600">
+                {showPassword ? <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg> : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>}
               </button>
             </div>
           </div>

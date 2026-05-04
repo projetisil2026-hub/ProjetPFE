@@ -1,7 +1,15 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(Get-ChildItem -Path \"d:\\\\info\\\\3_th\\\\PFE\\\\ProjetPFE-main\\\\ProjetPFE\" -Exclude node_modules -Force)",
+      "Bash(Select-Object Name, PSIsContainer)",
+      "Bash(Get-ChildItem -Recurse -Force)",
+      "Bash(Select-Object FullName)",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":5000\")",
+      "Bash(taskkill /PID 17972 /F)",
+      "Bash(dir \"d:\\\\info\\\\3_th\\\\PFE\\\\ProjetPFE-main\\\\ProjetPFE\" /A /B)"
     ]
   }
 }

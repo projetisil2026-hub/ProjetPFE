@@ -1,84 +1,75 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { storage, KEYS } from '../utils/storage';
-import { generateId } from '../utils/auth';
-import { currentTime } from '../utils/hijriDate';
+import { notificationsAPI } from '../services/api';
 
 const NotificationContext = createContext(null);
 
 export const NotificationProvider = ({ children, userId }) => {
   const [notifications, setNotifications] = useState([]);
 
-  const loadNotifications = useCallback(() => {
-    const all = storage.getAll(KEYS.NOTIFICATIONS);
-    setNotifications(all.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
+  const loadNotifications = useCallback(async () => {
+    try {
+      const res = await notificationsAPI.getAll();
+      setNotifications(res.data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
+    } catch (err) {
+      console.error('[Notifications] load failed:', err.message);
+    }
   }, []);
 
   useEffect(() => {
+    if (!userId) return;
     loadNotifications();
-    // Poll every 5 seconds for new notifications (simulates socket)
-    const interval = setInterval(loadNotifications, 5000);
+    const interval = setInterval(loadNotifications, 15000);
     return () => clearInterval(interval);
-  }, [loadNotifications]);
+  }, [userId, loadNotifications]);
 
-  const sendNotification = useCallback((message, senderName) => {
-    const notif = {
-      id: generateId(),
-      message,
-      senderId: userId,
-      senderName: senderName || 'Admin',
-      timestamp: new Date().toISOString(),
-      time: currentTime(),
-      readBy: [],
-    };
-    storage.add(KEYS.NOTIFICATIONS, notif);
-    setNotifications(prev => [notif, ...prev]);
+  const sendNotification = useCallback(async (message, senderName) => {
+    try {
+      const res = await notificationsAPI.create(message, senderName);
+      setNotifications(prev => [res.data, ...prev]);
+      return res.data;
+    } catch (err) {
+      console.error('[Notifications] create failed:', err.message);
+    }
+  }, []);
 
-    // Simulate broadcast via storage event
-    window.dispatchEvent(new StorageEvent('storage', {
-      key: KEYS.NOTIFICATIONS,
-      newValue: JSON.stringify(storage.getAll(KEYS.NOTIFICATIONS)),
-    }));
-
-    return notif;
+  const markAsRead = useCallback(async (notifId) => {
+    if (!userId) return;
+    try {
+      await notificationsAPI.markRead(notifId);
+      setNotifications(prev => prev.map(n => {
+        if (n.id !== notifId) return n;
+        const readBy = Array.isArray(n.readBy) ? n.readBy : [];
+        if (readBy.includes(userId)) return n;
+        return { ...n, readBy: [...readBy, userId] };
+      }));
+    } catch (err) {
+      console.error('[Notifications] markRead failed:', err.message);
+    }
   }, [userId]);
 
-  const markAsRead = useCallback((notifId) => {
+  const markAllRead = useCallback(async () => {
     if (!userId) return;
-    const notif = storage.findOne(KEYS.NOTIFICATIONS, n => n.id === notifId);
-    if (notif && !notif.readBy.includes(userId)) {
-      storage.update(KEYS.NOTIFICATIONS, notifId, {
-        readBy: [...notif.readBy, userId],
-      });
-      loadNotifications();
+    try {
+      await notificationsAPI.markAllRead();
+      setNotifications(prev => prev.map(n => {
+        const readBy = Array.isArray(n.readBy) ? n.readBy : [];
+        if (readBy.includes(userId)) return n;
+        return { ...n, readBy: [...readBy, userId] };
+      }));
+    } catch (err) {
+      console.error('[Notifications] markAllRead failed:', err.message);
     }
-  }, [userId, loadNotifications]);
+  }, [userId]);
 
-  const markAllRead = useCallback(() => {
-    if (!userId) return;
-    const all = storage.getAll(KEYS.NOTIFICATIONS);
-    all.forEach(n => {
-      if (!n.readBy.includes(userId)) {
-        storage.update(KEYS.NOTIFICATIONS, n.id, { readBy: [...n.readBy, userId] });
-      }
-    });
-    loadNotifications();
-  }, [userId, loadNotifications]);
-
-  const unreadCount = notifications.filter(n => userId && !n.readBy.includes(userId)).length;
-
-  // Listen to storage events from other tabs
-  useEffect(() => {
-    const handleStorage = (e) => {
-      if (e.key === KEYS.NOTIFICATIONS) loadNotifications();
-    };
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
-  }, [loadNotifications]);
+  const unreadCount = notifications.filter(n => {
+    const readBy = Array.isArray(n.readBy) ? n.readBy : [];
+    return userId && !readBy.includes(userId);
+  }).length;
 
   return (
     <NotificationContext.Provider value={{
       notifications, sendNotification, markAsRead, markAllRead,
-      unreadCount, reload: loadNotifications
+      unreadCount, reload: loadNotifications,
     }}>
       {children}
     </NotificationContext.Provider>

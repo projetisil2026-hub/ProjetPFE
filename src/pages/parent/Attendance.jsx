@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { storage, KEYS } from '../../utils/storage';
+import { useData } from '../../contexts/DataContext';
 import { formatHijri, formatGregorian } from '../../utils/hijriDate';
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -10,24 +10,26 @@ const DAY_NAMES = ['sunday','monday','tuesday','wednesday','thursday','friday','
 const ParentAttendance = () => {
   const { user } = useAuth();
   const { t, lang } = useLanguage();
+  const { users, attendance, academicYears, loadAll } = useData();
   const [selectedChildId, setSelectedChildId] = useState('');
   const [filterMonth, setFilterMonth] = useState('');
   const [filterYearId, setFilterYearId] = useState('');
 
+  useEffect(() => { loadAll(); }, [loadAll]);
+
   const children = useMemo(() => {
-    return storage.getAll(KEYS.USERS).filter(u => user?.childrenIds?.includes(u.id));
-  }, [user]);
+    return users.filter(u => user?.childrenIds?.includes(u.id));
+  }, [users, user]);
 
   const selectedChild = children.find(c => c.id === selectedChildId) || children[0];
-  const academicYears = storage.getAll(KEYS.ACADEMIC_YEARS);
 
   const records = useMemo(() => {
     if (!selectedChild) return [];
-    let all = storage.getAll(KEYS.ATTENDANCE).filter(a => a.studentId === selectedChild.id);
+    let all = attendance.filter(a => a.studentId === selectedChild.id);
     if (filterYearId) all = all.filter(a => a.academicYearId === filterYearId);
     if (filterMonth) all = all.filter(a => new Date(a.date).getMonth() + 1 === parseInt(filterMonth));
     return all.sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [selectedChild, filterMonth, filterYearId]);
+  }, [selectedChild, filterMonth, filterYearId, attendance]);
 
   const stats = useMemo(() => {
     const total = records.length;

@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useNotifications } from '../../contexts/NotificationContext';
-import { storage } from '../../utils/storage';
 import Logo from './Logo';
 
 const Navbar = ({ onMenuClick }) => {
@@ -13,7 +12,7 @@ const Navbar = ({ onMenuClick }) => {
   const [showNotifs, setShowNotifs] = useState(false);
   const navigate = useNavigate();
 
-  const schoolInfo = storage.get('tatabu_school_info', {});
+  const schoolInfo = JSON.parse(localStorage.getItem('tatabu_school_info') || '{}');
   const schoolName = schoolInfo?.name || '';
 
   const notifPath = `/${user?.role}/dashboard`;

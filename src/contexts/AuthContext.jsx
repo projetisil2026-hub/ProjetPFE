@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { createToken, verifyPassword, saveAuth, loadAuth, clearAuth } from '../utils/auth';
-import { storage, KEYS } from '../utils/storage';
+import { authAPI } from '../services/api';
+
+const TOKEN_KEY = 'tatabu_auth_token';
+const USER_KEY = 'tatabu_auth_user';
 
 const AuthContext = createContext(null);
 
@@ -10,49 +12,54 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const auth = loadAuth();
-    if (auth) {
-      setUser(auth.user);
-      setToken(auth.token);
+    const storedToken = localStorage.getItem(TOKEN_KEY);
+    const storedUser = localStorage.getItem(USER_KEY);
+    if (storedToken && storedUser) {
+      try {
+        setToken(storedToken);
+        setUser(JSON.parse(storedUser));
+      } catch {
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
+      }
     }
     setLoading(false);
   }, []);
 
-  const login = (identifier, password, expectedRole) => {
-    const users = storage.getAll(KEYS.USERS);
-    // Support login by email or username
-    const found = users.find(u =>
-      u.email?.toLowerCase() === identifier.toLowerCase() ||
-      u.username?.toLowerCase() === identifier.toLowerCase()
-    );
+  const login = async (identifier, password, expectedRole) => {
+    try {
+      const res = await authAPI.login(identifier, password, expectedRole);
+      const { token: newToken, user: userData } = res.data;
 
-    if (!found) return { success: false, error: 'user_not_found' };
-    if (!verifyPassword(password, found.password)) return { success: false, error: 'invalid_password' };
-    if (expectedRole && found.role !== expectedRole) return { success: false, error: 'role_mismatch' };
+      localStorage.setItem(TOKEN_KEY, newToken);
+      localStorage.setItem(USER_KEY, JSON.stringify(userData));
+      setToken(newToken);
+      setUser(userData);
 
-    const { password: _, ...safeUser } = found;
-    const newToken = createToken({ userId: found.id, role: found.role });
-
-    saveAuth(newToken, safeUser);
-    setUser(safeUser);
-    setToken(newToken);
-
-    return { success: true, user: safeUser };
+      return { success: true, user: userData };
+    } catch (err) {
+      const message = err.data?.message || err.message || 'login_failed';
+      return { success: false, error: message };
+    }
   };
 
-  const logout = () => {
-    clearAuth();
+  const logout = async () => {
+    try { await authAPI.logout(); } catch {}
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
     setUser(null);
     setToken(null);
   };
 
-  const refreshUser = () => {
-    if (!user) return;
-    const fresh = storage.findOne(KEYS.USERS, u => u.id === user.id);
-    if (fresh) {
-      const { password: _, ...safeUser } = fresh;
-      setUser(safeUser);
-      saveAuth(token, safeUser);
+  const refreshUser = async () => {
+    if (!token) return;
+    try {
+      const res = await authAPI.me();
+      const fresh = res.data;
+      localStorage.setItem(USER_KEY, JSON.stringify(fresh));
+      setUser(fresh);
+    } catch (err) {
+      console.error('refreshUser failed:', err.message);
     }
   };
 

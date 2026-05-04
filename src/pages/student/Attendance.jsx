@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { storage, KEYS } from '../../utils/storage';
+import { useData } from '../../contexts/DataContext';
 import { formatHijri, formatGregorian } from '../../utils/hijriDate';
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -10,18 +10,22 @@ const DAY_NAMES = ['sunday','monday','tuesday','wednesday','thursday','friday','
 const StudentAttendance = () => {
   const { user } = useAuth();
   const { t, lang } = useLanguage();
+  const { classes, attendance, academicYears, loadAll } = useData();
   const [filterMonth, setFilterMonth] = useState('');
   const [filterYearId, setFilterYearId] = useState('');
 
-  const academicYears = storage.getAll(KEYS.ACADEMIC_YEARS);
-  const myClass = storage.findOne(KEYS.CLASSES, c => c.studentIds?.includes(user?.id));
+  useEffect(() => { loadAll(); }, [loadAll]);
+
+  const myClass = useMemo(() => (
+    classes.find(c => c.studentIds?.includes(user?.id))
+  ), [classes, user]);
 
   const records = useMemo(() => {
-    let all = storage.getAll(KEYS.ATTENDANCE).filter(a => a.studentId === user?.id);
+    let all = attendance.filter(a => a.studentId === user?.id);
     if (filterYearId) all = all.filter(a => a.academicYearId === filterYearId);
     if (filterMonth) all = all.filter(a => new Date(a.date).getMonth() + 1 === parseInt(filterMonth));
     return all.sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [user, filterMonth, filterYearId]);
+  }, [user, filterMonth, filterYearId, attendance]);
 
   const stats = useMemo(() => {
     const total = records.length;

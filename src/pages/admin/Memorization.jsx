@@ -1,25 +1,24 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { storage, KEYS } from '../../utils/storage';
-import { SURAHS, getSurahName, calcTotalHizbProgress } from '../../utils/quranData';
+import { useData } from '../../contexts/DataContext';
+import { SURAHS } from '../../utils/quranData';
 import { formatHijri } from '../../utils/hijriDate';
 
 const AdminMemorization = () => {
   const { t, lang, dir } = useLanguage();
+  const { users, classes, memorization, loadAll } = useData();
   const [filterClass, setFilterClass] = useState('');
   const [filterDate, setFilterDate] = useState('');
   const [filterSurah, setFilterSurah] = useState('');
   const [search, setSearch] = useState('');
 
-  const classes = storage.getAll(KEYS.CLASSES);
-  const users = storage.getAll(KEYS.USERS);
+  useEffect(() => { loadAll(); }, [loadAll]);
 
   const records = useMemo(() => {
-    let all = storage.getAll(KEYS.MEMORIZATION);
+    let all = memorization;
     if (filterClass) all = all.filter(m => m.classId === filterClass);
     if (filterDate) all = all.filter(m => m.date === filterDate);
     if (filterSurah) all = all.filter(m => m.surahId === parseInt(filterSurah));
-
     return all.map(m => {
       const student = users.find(u => u.id === m.studentId);
       const cls = classes.find(c => c.id === m.classId);
@@ -33,13 +32,9 @@ const AdminMemorization = () => {
       };
     }).filter(m => {
       if (!search) return true;
-      const s = users.find(u => u.id === m.studentId);
-      const nameAr = s?.nameAr || s?.name || '';
-      const nameEn = s?.nameEn || s?.name || '';
-      return nameAr.toLowerCase().includes(search.toLowerCase()) ||
-             nameEn.toLowerCase().includes(search.toLowerCase());
+      return m.studentName.toLowerCase().includes(search.toLowerCase());
     }).sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [filterClass, filterDate, filterSurah, search, users, classes, lang]);
+  }, [memorization, users, classes, filterClass, filterDate, filterSurah, search, lang]);
 
   const evalColors = {
     excellent: 'bg-brand-green-100 text-brand-green-700 dark:bg-brand-green-900/30 dark:text-brand-green-400',
@@ -55,7 +50,6 @@ const AdminMemorization = () => {
         <p className="page-subtitle">{records.length} {t('common.total').toLowerCase()}</p>
       </div>
 
-      {/* Filters */}
       <div className="card p-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={t('memo.search')} className="input" />
@@ -71,7 +65,6 @@ const AdminMemorization = () => {
         </div>
       </div>
 
-      {/* Table */}
       <div className="table-wrapper">
         <table className="w-full">
           <thead className="table-head">
@@ -95,28 +88,16 @@ const AdminMemorization = () => {
                   <div className="text-sm font-medium">{formatHijri(r.date, lang)}</div>
                   <div className="text-xs text-[var(--color-text-muted)]">{r.date}</div>
                 </td>
-                <td className="table-td font-medium" style={{ fontFamily: lang === 'ar' ? "'Amiri', serif" : undefined }}>
-                  {r.surahName}
-                </td>
+                <td className="table-td font-medium" style={{ fontFamily: lang === 'ar' ? "'Amiri', serif" : undefined }}>{r.surahName}</td>
                 <td className="table-td">
                   {dir === 'rtl' ? (
-                    <>
-                      <span className="text-brand-green-600 font-medium">{r.toAyah}</span>
-                      <span className="text-[var(--color-text-muted)] mx-1">←</span>
-                      <span className="text-brand-green-600 font-medium">{r.fromAyah}</span>
-                    </>
+                    <><span className="text-brand-green-600 font-medium">{r.toAyah}</span><span className="text-[var(--color-text-muted)] mx-1">←</span><span className="text-brand-green-600 font-medium">{r.fromAyah}</span></>
                   ) : (
-                    <>
-                      <span className="text-brand-green-600 font-medium">{r.fromAyah}</span>
-                      <span className="text-[var(--color-text-muted)] mx-1">→</span>
-                      <span className="text-brand-green-600 font-medium">{r.toAyah}</span>
-                    </>
+                    <><span className="text-brand-green-600 font-medium">{r.fromAyah}</span><span className="text-[var(--color-text-muted)] mx-1">→</span><span className="text-brand-green-600 font-medium">{r.toAyah}</span></>
                   )}
                   <span className="text-xs text-[var(--color-text-muted)] ms-1">({r.ayahCount})</span>
                 </td>
-                <td className="table-td">
-                  <span className={`badge ${evalColors[r.evaluation] || ''}`}>{t(`eval.${r.evaluation}`)}</span>
-                </td>
+                <td className="table-td"><span className={`badge ${evalColors[r.evaluation] || ''}`}>{t(`eval.${r.evaluation}`)}</span></td>
               </tr>
             ))}
           </tbody>

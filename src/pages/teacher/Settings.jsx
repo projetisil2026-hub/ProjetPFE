@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { storage, KEYS } from '../../utils/storage';
-import { hashPassword } from '../../utils/auth';
+import { useData } from '../../contexts/DataContext';
 
 const TeacherSettings = () => {
   const { user, refreshUser } = useAuth();
   const { t, lang, switchLang } = useLanguage();
   const { theme, toggleTheme } = useTheme();
+  const { updateUser } = useData();
 
   const [toast, setToast] = useState(null);
   const [activeTab, setActiveTab] = useState('account');
@@ -50,7 +50,7 @@ const TeacherSettings = () => {
     }
   };
 
-  const handleSaveAccount = (e) => {
+  const handleSaveAccount = async (e) => {
     e.preventDefault();
     if (!user) return;
     if (accountForm.newPassword && otpStep !== 'verified') {
@@ -62,9 +62,9 @@ const TeacherSettings = () => {
       phone: accountForm.phone,
     };
     if (accountForm.newPassword && otpStep === 'verified') {
-      updates.password = hashPassword(accountForm.newPassword);
+      updates.password = accountForm.newPassword;
     }
-    storage.update(KEYS.USERS, user.id, updates);
+    await updateUser(user.id, updates);
     refreshUser();
     showToast(t('common.updated'));
     setAccountForm(prev => ({ ...prev, newPassword: '' }));

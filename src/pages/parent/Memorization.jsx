@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { storage, KEYS } from '../../utils/storage';
+import { useData } from '../../contexts/DataContext';
 import { SURAHS, calcTotalHizbProgress } from '../../utils/quranData';
 import { formatHijri, formatGregorian } from '../../utils/hijriDate';
 
@@ -15,32 +15,35 @@ const evalColors = {
 const ParentMemorization = () => {
   const { user } = useAuth();
   const { t, lang, dir } = useLanguage();
+  const { users, memorization, loadAll } = useData();
   const [selectedChildId, setSelectedChildId] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
+  useEffect(() => { loadAll(); }, [loadAll]);
+
   const children = useMemo(() => {
-    return storage.getAll(KEYS.USERS).filter(u => user?.childrenIds?.includes(u.id));
-  }, [user]);
+    return users.filter(u => user?.childrenIds?.includes(u.id));
+  }, [users, user]);
 
   const selectedChild = children.find(c => c.id === selectedChildId) || children[0];
 
   const records = useMemo(() => {
     if (!selectedChild) return [];
-    let all = storage.getAll(KEYS.MEMORIZATION).filter(m => m.studentId === selectedChild.id);
+    let all = memorization.filter(m => m.studentId === selectedChild.id);
     if (dateFrom) all = all.filter(m => m.date >= dateFrom);
     if (dateTo) all = all.filter(m => m.date <= dateTo);
     return all.map(m => {
       const surah = SURAHS.find(s => s.id === m.surahId);
       return { ...m, surahName: lang === 'ar' ? surah?.nameAr : surah?.nameEn };
     }).sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [selectedChild, dateFrom, dateTo, lang]);
+  }, [selectedChild, dateFrom, dateTo, lang, memorization]);
 
   const totalHizb = useMemo(() => {
     if (!selectedChild) return 0;
-    const all = storage.getAll(KEYS.MEMORIZATION).filter(m => m.studentId === selectedChild.id);
+    const all = memorization.filter(m => m.studentId === selectedChild.id);
     return calcTotalHizbProgress(all);
-  }, [selectedChild]);
+  }, [selectedChild, memorization]);
 
   return (
     <div className="space-y-6">

@@ -2,25 +2,27 @@ import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useSocket } from '../../contexts/SocketContext';
-import { storage, KEYS } from '../../utils/storage';
+import { useData } from '../../contexts/DataContext';
 
 const ParentMessages = () => {
   const { user } = useAuth();
   const { t, lang } = useLanguage();
   const { sendMessage, getChatId, getConversation, messages } = useSocket();
+  const { users, classes, loadAll } = useData();
   const [activeChatId, setActiveChatId] = useState(null);
   const [activeChatLabel, setActiveChatLabel] = useState('');
   const [text, setText] = useState('');
   const messagesEndRef = useRef(null);
 
-  const allUsers = storage.getAll(KEYS.USERS);
-  const children = allUsers.filter(u => user?.childrenIds?.includes(u.id));
+  useEffect(() => { loadAll(); }, [loadAll]);
+
+  const children = users.filter(u => user?.childrenIds?.includes(u.id));
 
   // One chat per unique teacher — collect all children for that teacher
   const teacherMap = new Map();
   children.forEach(child => {
-    const cls = storage.findOne(KEYS.CLASSES, c => c.studentIds?.includes(child.id));
-    const teacher = cls ? allUsers.find(u => u.id === cls.teacherId) : null;
+    const cls = classes.find(c => c.studentIds?.includes(child.id));
+    const teacher = cls ? users.find(u => u.id === cls.teacherId) : null;
     if (!teacher) return;
     if (teacherMap.has(teacher.id)) {
       teacherMap.get(teacher.id).childNames.push(child.nameAr || child.name);

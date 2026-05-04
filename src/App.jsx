@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { useLanguage } from './contexts/LanguageContext';
+import { useData } from './contexts/DataContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { SocketProvider } from './contexts/SocketContext';
 import ProtectedRoute from './components/common/ProtectedRoute';
@@ -79,6 +80,11 @@ const AppLayout = ({ children }) => {
 const App = () => {
   const { isAuthenticated, user } = useAuth();
   const { dir } = useLanguage();
+  const { reset } = useData();
+
+  useEffect(() => {
+    if (!isAuthenticated) reset();
+  }, [isAuthenticated, reset]);
 
   return (
     <Routes>

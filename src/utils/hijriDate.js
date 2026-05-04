@@ -4,13 +4,13 @@
  */
 
 export const HIJRI_MONTHS_AR = [
-  'محرم', 'صفر', 'ربيع الأول', 'ربيع الثاني',
+  'المحرم', 'صفر', 'ربيع الأول', 'ربيع الثاني',
   'جمادى الأولى', 'جمادى الآخرة', 'رجب', 'شعبان',
   'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة',
 ];
 
 export const HIJRI_MONTHS_EN = [
-  'Muharram', 'Safar', "Rabi' al-Awwal", "Rabi' al-Thani",
+  'Al-Muharram', 'Safar', "Rabi' al-Awwal", "Rabi' al-Thani",
   'Jumada al-Ula', 'Jumada al-Akhirah', 'Rajab', "Sha'ban",
   'Ramadan', 'Shawwal', "Dhu al-Qi'dah", 'Dhu al-Hijjah',
 ];

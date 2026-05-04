@@ -42,15 +42,22 @@ const Login = () => {
     if (!selectedRole) { setError(t('auth.selectRoleFirst')); return; }
     setError('');
     setLoading(true);
-    setTimeout(() => {
-      const result = login(identifier, password, selectedRole);
+    try {
+      const result = await login(identifier, password, selectedRole);
       if (result.success) {
         navigate(`/${result.user.role}/dashboard`, { replace: true });
       } else {
-        setError(t('auth.loginFailed'));
+        const msg = result.error || '';
+        if (msg === 'user_not_found') setError(t('auth.userNotFound') || 'User not found.');
+        else if (msg === 'invalid_password') setError(t('auth.invalidPassword') || 'Wrong password.');
+        else if (msg === 'role_mismatch') setError(t('auth.roleMismatch') || 'Role does not match this account.');
+        else setError(t('auth.loginFailed') || 'Login failed. Check your credentials.');
       }
+    } catch {
+      setError(t('auth.loginFailed') || 'Login failed. Check your credentials.');
+    } finally {
       setLoading(false);
-    }, 600);
+    }
   };
 
   const handleChangeRole = () => {

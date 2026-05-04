@@ -1,15 +1,18 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { storage, KEYS } from '../../utils/storage';
+import { useData } from '../../contexts/DataContext';
 import { formatGregorian, formatHijri } from '../../utils/hijriDate';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { t, lang } = useLanguage();
   const { user } = useAuth();
+  const { users, classes, academicYears, loadAll, updateAcademicYear, removeAcademicYear } = useData();
   const [toast, setToast] = useState(null);
+
+  useEffect(() => { loadAll(); }, [loadAll]);
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -19,25 +22,29 @@ const AdminDashboard = () => {
   const today = new Date();
 
   const stats = useMemo(() => {
-    const users = storage.getAll(KEYS.USERS);
-    const classes = storage.getAll(KEYS.CLASSES);
     const students = users.filter(u => u.role === 'student');
     const teachers = users.filter(u => u.role === 'teacher');
     return { totalStudents: students.length, activeTeachers: teachers.length, totalClasses: classes.length };
-  }, []);
+  }, [users, classes]);
 
-  const academicYears = storage.getAll(KEYS.ACADEMIC_YEARS);
   const activeYear = academicYears.find(y => y.isActive);
 
-  const handleSetActive = (yearId) => {
-    const years = storage.getAll(KEYS.ACADEMIC_YEARS);
-    years.forEach(y => storage.update(KEYS.ACADEMIC_YEARS, y.id, { isActive: y.id === yearId }));
-    showToast(t('common.updated'));
+  const handleSetActive = async (yearId) => {
+    try {
+      await updateAcademicYear(yearId, { isActive: true });
+      showToast(t('common.updated'));
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
   };
 
-  const handleDeleteYear = (yearId) => {
-    storage.delete(KEYS.ACADEMIC_YEARS, yearId);
-    showToast(t('common.deleted'));
+  const handleDeleteYear = async (yearId) => {
+    try {
+      await removeAcademicYear(yearId);
+      showToast(t('common.deleted'));
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
   };
 
   const statCards = [
@@ -75,15 +82,10 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* Hero banner */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-green-600 via-brand-green-700 to-brand-green-900 p-6 text-white shadow-lg">
         <div className="absolute inset-0 opacity-10">
-          <svg className="absolute -top-8 -right-8 w-64 h-64 text-white" fill="currentColor" viewBox="0 0 200 200">
-            <circle cx="150" cy="50" r="80" />
-          </svg>
-          <svg className="absolute -bottom-12 -left-8 w-48 h-48 text-white" fill="currentColor" viewBox="0 0 200 200">
-            <circle cx="50" cy="150" r="60" />
-          </svg>
+          <svg className="absolute -top-8 -right-8 w-64 h-64 text-white" fill="currentColor" viewBox="0 0 200 200"><circle cx="150" cy="50" r="80" /></svg>
+          <svg className="absolute -bottom-12 -left-8 w-48 h-48 text-white" fill="currentColor" viewBox="0 0 200 200"><circle cx="50" cy="150" r="60" /></svg>
         </div>
         <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -103,13 +105,10 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         {statCards.map((card, i) => (
           <button key={i} onClick={card.onClick} className="card p-4 flex flex-col gap-3 hover:scale-[1.03] hover:shadow-md transition-all duration-200 text-start">
-            <div className={`w-10 h-10 rounded-xl ${card.bg} ${card.text} flex items-center justify-center`}>
-              {card.icon}
-            </div>
+            <div className={`w-10 h-10 rounded-xl ${card.bg} ${card.text} flex items-center justify-center`}>{card.icon}</div>
             <div>
               <p className="text-2xl font-bold text-[var(--color-text)]">{card.value}</p>
               <p className="text-xs text-[var(--color-text-muted)] mt-0.5 leading-snug">{card.label}</p>
@@ -118,7 +117,6 @@ const AdminDashboard = () => {
         ))}
       </div>
 
-      {/* Academic Years */}
       <div className="card p-5">
         <h3 className="font-semibold text-[var(--color-text)] mb-4 flex items-center gap-2">
           <span className="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center">
@@ -138,11 +136,7 @@ const AdminDashboard = () => {
                     <span className="font-semibold text-[var(--color-text)] text-sm">{y.name}</span>
                     <p className="text-xs text-[var(--color-text-muted)] mt-0.5">{y.startDate} → {y.endDate}</p>
                   </div>
-                  {y.isActive && (
-                    <span className="badge bg-brand-green-100 text-brand-green-700 dark:bg-brand-green-900/30 dark:text-brand-green-400">
-                      {t('year.active')}
-                    </span>
-                  )}
+                  {y.isActive && <span className="badge bg-brand-green-100 text-brand-green-700 dark:bg-brand-green-900/30 dark:text-brand-green-400">{t('year.active')}</span>}
                 </div>
                 <div className="flex gap-2">
                   {!y.isActive && (

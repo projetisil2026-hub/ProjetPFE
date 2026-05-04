@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { storage, KEYS } from '../../utils/storage';
+import { useData } from '../../contexts/DataContext';
 import { SURAHS, calcTotalHizbProgress } from '../../utils/quranData';
 import { formatHijri, formatGregorian } from '../../utils/hijriDate';
 
@@ -15,25 +15,30 @@ const evalColors = {
 const StudentMemorization = () => {
   const { user } = useAuth();
   const { t, lang, dir } = useLanguage();
+  const { classes, memorization, loadAll } = useData();
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
-  const myClass = storage.findOne(KEYS.CLASSES, c => c.studentIds?.includes(user?.id));
+  useEffect(() => { loadAll(); }, [loadAll]);
+
+  const myClass = useMemo(() => (
+    classes.find(c => c.studentIds?.includes(user?.id))
+  ), [classes, user]);
 
   const records = useMemo(() => {
-    let all = storage.getAll(KEYS.MEMORIZATION).filter(m => m.studentId === user?.id);
+    let all = memorization.filter(m => m.studentId === user?.id);
     if (dateFrom) all = all.filter(m => m.date >= dateFrom);
     if (dateTo) all = all.filter(m => m.date <= dateTo);
     return all.map(m => {
       const surah = SURAHS.find(s => s.id === m.surahId);
       return { ...m, surahName: lang === 'ar' ? surah?.nameAr : surah?.nameEn };
     }).sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [user, dateFrom, dateTo, lang]);
+  }, [user, dateFrom, dateTo, lang, memorization]);
 
   const totalHizb = useMemo(() => {
-    const all = storage.getAll(KEYS.MEMORIZATION).filter(m => m.studentId === user?.id);
+    const all = memorization.filter(m => m.studentId === user?.id);
     return calcTotalHizbProgress(all);
-  }, [user]);
+  }, [user, memorization]);
 
   return (
     <div className="space-y-6">

@@ -1,13 +1,13 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { storage, KEYS } from '../../utils/storage';
+import { useData } from '../../contexts/DataContext';
 import { formatHijri, formatGregorian, todayISO, gregorianToHijri, hijriToGregorian, HIJRI_MONTHS_AR, HIJRI_MONTHS_EN } from '../../utils/hijriDate';
-import { generateId } from '../../utils/auth';
 
 const TeacherAttendance = () => {
   const { user } = useAuth();
   const { t, lang } = useLanguage();
+  const { users, classes, attendance, academicYears, saveAttendanceBulk, loadAll } = useData();
 
   const todayHijri = gregorianToHijri(new Date());
   const [hijriYear, setHijriYear] = useState(todayHijri.year);
@@ -22,10 +22,11 @@ const TeacherAttendance = () => {
   const [attendanceMap, setAttendanceMap] = useState({});
   const [toast, setToast] = useState(null);
 
+  useEffect(() => { loadAll(); }, [loadAll]);
+
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
-  const myClasses = useMemo(() => storage.getAll(KEYS.CLASSES).filter(c => c.teacherId === user?.id), [user]);
-  const allUsers = storage.getAll(KEYS.USERS);
+  const myClasses = useMemo(() => classes.filter(c => c.teacherId === user?.id), [classes, user]);
 
   const hijriMonthNames = lang === 'ar' ? HIJRI_MONTHS_AR : HIJRI_MONTHS_EN;
 
@@ -54,30 +55,27 @@ const TeacherAttendance = () => {
   };
 
   const records = useMemo(() => {
-    let all = storage.getAll(KEYS.ATTENDANCE).filter(a => {
-      const cls = myClasses.find(c => c.id === a.classId);
-      return !!cls;
-    });
+    let all = attendance.filter(a => myClasses.some(c => c.id === a.classId));
     if (filterClass) all = all.filter(a => a.classId === filterClass);
     if (filterDate) all = all.filter(a => a.date === filterDate);
     return all.map(a => {
-      const student = allUsers.find(u => u.id === a.studentId);
+      const student = users.find(u => u.id === a.studentId);
       const cls = myClasses.find(c => c.id === a.classId);
       return { ...a, studentName: student?.nameAr || student?.name || '?', className: cls?.name || '?' };
     }).filter(a => {
       if (search) return a.studentName.toLowerCase().includes(search.toLowerCase());
       return true;
     }).sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [filterClass, filterDate, search, myClasses, allUsers]);
+  }, [attendance, filterClass, filterDate, search, myClasses, users]);
 
   const studentsForClass = useMemo(() => {
     if (!recordingClass) return [];
     const cls = myClasses.find(c => c.id === recordingClass);
-    return allUsers.filter(u => cls?.studentIds?.includes(u.id));
-  }, [recordingClass, myClasses, allUsers]);
+    return users.filter(u => cls?.studentIds?.includes(u.id));
+  }, [recordingClass, myClasses, users]);
 
   const initAttendanceMap = (classId, date) => {
-    const existing = storage.getAll(KEYS.ATTENDANCE).filter(a => a.classId === classId && a.date === date);
+    const existing = attendance.filter(a => a.classId === classId && a.date === date);
     const cls = myClasses.find(c => c.id === classId);
     const map = {};
     cls?.studentIds?.forEach(id => {
@@ -92,29 +90,22 @@ const TeacherAttendance = () => {
     if (classId) initAttendanceMap(classId, selectedDate);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!recordingClass || !selectedDate) return;
     const cls = myClasses.find(c => c.id === recordingClass);
-    const activeYear = storage.findOne(KEYS.ACADEMIC_YEARS, y => y.isActive);
-
-    const existing = storage.getAll(KEYS.ATTENDANCE).filter(a => !(a.classId === recordingClass && a.date === selectedDate));
-    storage.set(KEYS.ATTENDANCE, existing);
-
-    cls?.studentIds?.forEach(studentId => {
-      storage.add(KEYS.ATTENDANCE, {
-        id: generateId(),
-        studentId,
-        classId: recordingClass,
-        academicYearId: activeYear?.id || '',
-        date: selectedDate,
-        status: attendanceMap[studentId] || 'present',
-        createdAt: new Date().toISOString(),
-      });
-    });
-
-    showToast(t('common.success'));
-    setRecordingClass('');
-    setAttendanceMap({});
+    const activeYear = academicYears.find(y => y.isActive);
+    const records = (cls?.studentIds || []).map(studentId => ({
+      studentId,
+      status: attendanceMap[studentId] || 'present',
+    }));
+    try {
+      await saveAttendanceBulk(recordingClass, selectedDate, records, activeYear?.id || '');
+      showToast(t('common.success'));
+      setRecordingClass('');
+      setAttendanceMap({});
+    } catch (err) {
+      showToast(err.message);
+    }
   };
 
   const hijriYears = Array.from({ length: 15 }, (_, i) => todayHijri.year - 5 + i);

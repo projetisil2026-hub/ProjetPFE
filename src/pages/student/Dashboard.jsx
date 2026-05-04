@@ -1,49 +1,51 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { storage, KEYS } from '../../utils/storage';
+import { useData } from '../../contexts/DataContext';
 import { calcTotalHizbProgress } from '../../utils/quranData';
 
 const StudentDashboard = () => {
   const { user } = useAuth();
   const { t, lang } = useLanguage();
-  const navigate = useNavigate(); // kept for hizb progress card
+  const { users, classes, memorization, academicYears, loadAll } = useData();
+  const navigate = useNavigate();
   const [selectedYearId, setSelectedYearId] = useState('');
 
-  const academicYears = storage.getAll(KEYS.ACADEMIC_YEARS);
-  const activeYear  = academicYears.find(y => y.isActive);
+  useEffect(() => { loadAll(); }, [loadAll]);
+
+  const activeYear = academicYears.find(y => y.isActive);
   const displayYear = selectedYearId
     ? academicYears.find(y => y.id === selectedYearId)
     : activeYear;
 
   const myClass = useMemo(() => (
-    storage.getAll(KEYS.CLASSES).find(c => c.studentIds?.includes(user?.id))
-  ), [user]);
+    classes.find(c => c.studentIds?.includes(user?.id))
+  ), [classes, user]);
 
   const myTeacher = useMemo(() => {
     if (!myClass) return null;
-    return storage.findOne(KEYS.USERS, u => u.id === myClass.teacherId);
-  }, [myClass]);
+    return users.find(u => u.id === myClass.teacherId);
+  }, [myClass, users]);
 
   const hizbProgress = useMemo(() => {
-    const memos = storage.getAll(KEYS.MEMORIZATION).filter(m => {
+    const memos = memorization.filter(m => {
       if (m.studentId !== user?.id) return false;
       if (displayYear && m.academicYearId !== displayYear.id) return false;
       return true;
     });
     return calcTotalHizbProgress(memos);
-  }, [user, displayYear]);
+  }, [user, displayYear, memorization]);
 
-  const pct          = Math.min((hizbProgress / 60) * 100, 100);
+  const pct = Math.min((hizbProgress / 60) * 100, 100);
   const circumference = 2 * Math.PI * 42;
-  const displayName  = lang === 'ar' ? (user?.nameAr || user?.name) : (user?.nameEn || user?.name);
-  const teacherName  = lang === 'ar' ? (myTeacher?.nameAr || myTeacher?.name) : (myTeacher?.nameEn || myTeacher?.name);
+  const displayName = lang === 'ar' ? (user?.nameAr || user?.name) : (user?.nameEn || user?.name);
+  const teacherName = lang === 'ar' ? (myTeacher?.nameAr || myTeacher?.name) : (myTeacher?.nameEn || myTeacher?.name);
 
   return (
     <div className="space-y-6">
 
-      {/* ── Hero ── */}
+      {/* Hero */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-green-600 via-brand-green-700 to-brand-green-900 p-6 text-white shadow-lg animate-fade-in-up">
         <div className="absolute inset-0 opacity-10">
           <svg className="absolute -top-8 -right-8 w-56 h-56" fill="currentColor" viewBox="0 0 200 200"><circle cx="150" cy="50" r="80"/></svg>
@@ -60,7 +62,6 @@ const StudentDashboard = () => {
               </span>
             )}
           </div>
-          {/* Year selector */}
           <div>
             <label className="text-brand-green-200 text-xs font-medium block mb-1">{t('student.dashboard.selectYear')}</label>
             <select
@@ -77,7 +78,7 @@ const StudentDashboard = () => {
         </div>
       </div>
 
-      {/* ── Hizb progress (clickable → memorization) ── */}
+      {/* Hizb progress */}
       <div
         className="card p-6 cursor-pointer hover:shadow-md hover:scale-[1.01] transition-all duration-200 group animate-fade-in-up delay-75"
         onClick={() => navigate('/student/memorization')}
@@ -88,13 +89,11 @@ const StudentDashboard = () => {
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
           </span>
           {t('student.dashboard.hizbProgress')}
-          {/* Arrow hint */}
           <svg className="w-4 h-4 ms-auto text-[var(--color-text-muted)] opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
           </svg>
         </h3>
         <div className="flex items-center gap-6 flex-wrap">
-          {/* SVG ring */}
           <div className="relative w-32 h-32 flex-shrink-0">
             <svg className="w-32 h-32 -rotate-90" viewBox="0 0 100 100">
               <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" strokeWidth="10" className="text-[var(--color-border)]"/>
@@ -114,7 +113,6 @@ const StudentDashboard = () => {
             </div>
           </div>
 
-          {/* Bar + mini stats */}
           <div className="flex-1 min-w-[160px] space-y-3">
             <div>
               <div className="flex justify-between text-sm mb-1.5">
@@ -139,9 +137,8 @@ const StudentDashboard = () => {
         </div>
       </div>
 
-      {/* ── Class & Teacher ── */}
+      {/* Class & Teacher */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fade-in-up delay-150">
-        {/* Class card — info only, no redirect */}
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-3">
             <span className="w-7 h-7 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center">
@@ -161,7 +158,6 @@ const StudentDashboard = () => {
           )}
         </div>
 
-        {/* Teacher card (info only) */}
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-3">
             <span className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center">
@@ -185,7 +181,7 @@ const StudentDashboard = () => {
         </div>
       </div>
 
-      {/* ── Schedule (info only, no redirect) ── */}
+      {/* Schedule */}
       {myClass?.schedule?.length > 0 && (
         <div className="card p-5 animate-fade-in-up delay-225">
           <h3 className="font-semibold text-[var(--color-text)] mb-4 flex items-center gap-2">

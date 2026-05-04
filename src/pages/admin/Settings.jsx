@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { storage, KEYS } from '../../utils/storage';
-import { hashPassword, generateId } from '../../utils/auth';
+import { useData } from '../../contexts/DataContext';
 import { ConfirmModal } from '../../components/common/Modal';
 import Modal from '../../components/common/Modal';
 
@@ -13,6 +12,7 @@ const AdminSettings = () => {
   const { user, refreshUser, logout } = useAuth();
   const { t, lang, switchLang } = useLanguage();
   const { theme, toggleTheme } = useTheme();
+  const { updateUser, addAcademicYear } = useData();
 
   const [toast, setToast] = useState(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -26,7 +26,7 @@ const AdminSettings = () => {
   };
 
   // School info
-  const savedSchool = storage.get('tatabu_school_info', {});
+  const savedSchool = JSON.parse(localStorage.getItem('tatabu_school_info') || '{}');
   const [schoolForm, setSchoolForm] = useState({
     name: savedSchool.name || '',
     country: savedSchool.country || '',
@@ -46,15 +46,15 @@ const AdminSettings = () => {
 
   const handleSaveSchool = (e) => {
     e.preventDefault();
-    storage.set('tatabu_school_info', {
+    localStorage.setItem('tatabu_school_info', JSON.stringify({
       name: schoolForm.name,
       country: schoolForm.country,
       region: schoolForm.region,
-    });
+    }));
     showToast(t('common.updated'));
   };
 
-  const handleSaveAccount = (e) => {
+  const handleSaveAccount = async (e) => {
     e.preventDefault();
     if (!user) return;
     const updates = {
@@ -65,23 +65,21 @@ const AdminSettings = () => {
       phone: accountForm.phone,
     };
     if (accountForm.newPassword) {
-      updates.password = hashPassword(accountForm.newPassword);
+      updates.password = accountForm.newPassword;
     }
-    storage.update(KEYS.USERS, user.id, updates);
+    await updateUser(user.id, updates);
     refreshUser();
     showToast(t('common.updated'));
     setAccountForm(prev => ({ ...prev, currentPassword: '', newPassword: '' }));
   };
 
-  const handleCreateYear = (e) => {
+  const handleCreateYear = async (e) => {
     e.preventDefault();
-    storage.add(KEYS.ACADEMIC_YEARS, {
-      id: generateId(),
+    await addAcademicYear({
       name: yearForm.name,
       startDate: yearForm.startDate,
       endDate: yearForm.endDate,
       isActive: false,
-      createdAt: new Date().toISOString(),
     });
     setShowCreateYear(false);
     setYearForm({ name: '', startDate: '', endDate: '' });
@@ -89,15 +87,6 @@ const AdminSettings = () => {
   };
 
   const handleResetData = () => {
-    localStorage.removeItem(KEYS.USERS);
-    localStorage.removeItem(KEYS.ACADEMIC_YEARS);
-    localStorage.removeItem(KEYS.CLASSES);
-    localStorage.removeItem(KEYS.ATTENDANCE);
-    localStorage.removeItem(KEYS.MEMORIZATION);
-    localStorage.removeItem(KEYS.NOTIFICATIONS);
-    localStorage.removeItem(KEYS.MESSAGES);
-    localStorage.removeItem(KEYS.MONTHLY_NOTES);
-    localStorage.removeItem(KEYS.INITIALIZED);
     logout();
     navigate('/');
   };

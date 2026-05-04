@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { storage, KEYS } from '../../utils/storage';
+import { useData } from '../../contexts/DataContext';
 import { calcTotalHizbProgress } from '../../utils/quranData';
 import { exportMemorizationPDF } from '../../utils/pdfExport';
 import { SURAHS } from '../../utils/quranData';
@@ -11,15 +11,17 @@ const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
 const TeacherReports = () => {
   const { user } = useAuth();
   const { t, lang } = useLanguage();
+  const { users, classes, attendance, memorization, loadAll } = useData();
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [toast, setToast] = useState(null);
 
+  useEffect(() => { loadAll(); }, [loadAll]);
+
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
-  const myClasses = useMemo(() => storage.getAll(KEYS.CLASSES).filter(c => c.teacherId === user?.id), [user]);
-  const allUsers = storage.getAll(KEYS.USERS);
+  const myClasses = useMemo(() => classes.filter(c => c.teacherId === user?.id), [classes, user]);
   const activeClass = myClasses.find(c => c.id === selectedClass) || myClasses[0];
 
   useMemo(() => {
@@ -28,16 +30,16 @@ const TeacherReports = () => {
 
   const classStudents = useMemo(() => {
     if (!activeClass) return [];
-    return allUsers.filter(u => activeClass.studentIds?.includes(u.id));
-  }, [activeClass, allUsers]);
+    return users.filter(u => activeClass.studentIds?.includes(u.id));
+  }, [activeClass, users]);
 
   const stats = useMemo(() => {
     if (!activeClass) return null;
-    const allAttend = storage.getAll(KEYS.ATTENDANCE).filter(a => {
+    const allAttend = attendance.filter(a => {
       const d = new Date(a.date);
       return a.classId === activeClass.id && d.getMonth() + 1 === selectedMonth && d.getFullYear() === selectedYear;
     });
-    const allMemo = storage.getAll(KEYS.MEMORIZATION).filter(m => {
+    const allMemo = memorization.filter(m => {
       const d = new Date(m.date);
       return m.classId === activeClass.id && d.getMonth() + 1 === selectedMonth && d.getFullYear() === selectedYear;
     });
@@ -51,9 +53,8 @@ const TeacherReports = () => {
     }).sort((a, b) => b.hizbProgress - a.hizbProgress);
 
     return { studentStats, totalAttend: allAttend, totalMemo: allMemo };
-  }, [activeClass, classStudents, selectedMonth, selectedYear]);
+  }, [activeClass, classStudents, selectedMonth, selectedYear, attendance, memorization]);
 
-  // Check if current date is end of month
   const now = new Date();
   const isEndOfMonth = now.getDate() >= 25;
 
@@ -61,7 +62,7 @@ const TeacherReports = () => {
     if (!isEndOfMonth) { showToast(t('reports.endOfMonth')); return; }
     if (!activeClass || !stats) return;
 
-    const allMemo = storage.getAll(KEYS.MEMORIZATION).filter(m => {
+    const allMemo = memorization.filter(m => {
       const d = new Date(m.date);
       return m.classId === activeClass.id && d.getMonth() + 1 === selectedMonth && d.getFullYear() === selectedYear;
     });
@@ -153,7 +154,6 @@ const TeacherReports = () => {
           </div>
         </div>
       )}
-
     </div>
   );
 };

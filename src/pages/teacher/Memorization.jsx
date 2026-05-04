@@ -1,10 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { storage, KEYS } from '../../utils/storage';
+import { useData } from '../../contexts/DataContext';
 import { SURAHS, calcHizbProgress } from '../../utils/quranData';
 import { formatHijri, formatGregorian, todayISO, gregorianToHijri, hijriToGregorian, HIJRI_MONTHS_AR, HIJRI_MONTHS_EN } from '../../utils/hijriDate';
-import { generateId } from '../../utils/auth';
 import { ConfirmModal } from '../../components/common/Modal';
 
 const TOTAL_QURAN_AYAHS = 6236;
@@ -16,12 +15,10 @@ const evalColors = {
   repeat: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
 };
 
-const MemoProgressPanel = ({ myClasses, allUsers, filterClass, t, lang }) => {
+const MemoProgressPanel = ({ myClasses, allUsers, allMemo, filterClass, t, lang }) => {
   const activeClasses = filterClass
     ? myClasses.filter(c => c.id === filterClass)
     : myClasses;
-
-  const allMemo = storage.getAll(KEYS.MEMORIZATION);
 
   const studentProgress = activeClasses.flatMap(cls =>
     (cls.studentIds || []).map(sid => {
@@ -98,6 +95,7 @@ const MemoProgressPanel = ({ myClasses, allUsers, filterClass, t, lang }) => {
 const TeacherMemorization = () => {
   const { user } = useAuth();
   const { t, lang, dir } = useLanguage();
+  const { users, classes, attendance, memorization, academicYears, addMemorization, updateMemorization, removeMemorization, loadAll } = useData();
 
   const todayHijri = gregorianToHijri(new Date());
   const [hijriYear, setHijriYear] = useState(todayHijri.year);
@@ -115,10 +113,11 @@ const TeacherMemorization = () => {
   const [search, setSearch] = useState('');
   const [toast, setToast] = useState(null);
 
+  useEffect(() => { loadAll(); }, [loadAll]);
+
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
-  const myClasses = useMemo(() => storage.getAll(KEYS.CLASSES).filter(c => c.teacherId === user?.id), [user]);
-  const allUsers = storage.getAll(KEYS.USERS);
+  const myClasses = useMemo(() => classes.filter(c => c.teacherId === user?.id), [classes, user]);
 
   const hijriMonthNames = lang === 'ar' ? HIJRI_MONTHS_AR : HIJRI_MONTHS_EN;
   const hijriYears = Array.from({ length: 15 }, (_, i) => todayHijri.year - 5 + i);
@@ -136,23 +135,22 @@ const TeacherMemorization = () => {
     if (!form.classId) return [];
     const cls = myClasses.find(c => c.id === form.classId);
     const today = todayISO();
-    const attendanceRecords = storage.getAll(KEYS.ATTENDANCE).filter(a => a.classId === form.classId && a.date === today && a.status === 'present');
-    const presentStudentIds = attendanceRecords.map(a => a.studentId);
-    return allUsers.filter(u => cls?.studentIds?.includes(u.id) && presentStudentIds.includes(u.id));
-  }, [form.classId, myClasses, allUsers]);
+    const presentStudentIds = attendance
+      .filter(a => a.classId === form.classId && a.date === today && a.status === 'present')
+      .map(a => a.studentId);
+    return users.filter(u => cls?.studentIds?.includes(u.id) && presentStudentIds.includes(u.id));
+  }, [form.classId, myClasses, users, attendance]);
 
   const selectedSurah = SURAHS.find(s => s.id === parseInt(form.surahId));
   const ayahCount = form.toAyah - form.fromAyah + 1;
   const hizbEstimate = selectedSurah ? calcHizbProgress(parseInt(form.surahId), parseInt(form.fromAyah), parseInt(form.toAyah)) : 0;
 
   const records = useMemo(() => {
-    let all = storage.getAll(KEYS.MEMORIZATION).filter(m => {
-      return myClasses.some(c => c.id === m.classId);
-    });
+    let all = memorization.filter(m => myClasses.some(c => c.id === m.classId));
     if (filterClass) all = all.filter(m => m.classId === filterClass);
     if (filterDate) all = all.filter(m => m.date === filterDate);
     return all.map(m => {
-      const student = allUsers.find(u => u.id === m.studentId);
+      const student = users.find(u => u.id === m.studentId);
       const cls = myClasses.find(c => c.id === m.classId);
       const surah = SURAHS.find(s => s.id === m.surahId);
       return {
@@ -163,29 +161,31 @@ const TeacherMemorization = () => {
       };
     }).filter(m => !search || m.studentName.toLowerCase().includes(search.toLowerCase()))
       .sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [filterClass, filterDate, search, myClasses, allUsers, lang]);
+  }, [memorization, filterClass, filterDate, search, myClasses, users, lang]);
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    const activeYear = storage.findOne(KEYS.ACADEMIC_YEARS, y => y.isActive);
-    if (editId) {
-      storage.update(KEYS.MEMORIZATION, editId, {
-        ...form, surahId: parseInt(form.surahId), fromAyah: parseInt(form.fromAyah),
-        toAyah: parseInt(form.toAyah), academicYearId: activeYear?.id || '',
-      });
-      setEditId(null);
-      showToast(t('common.updated'));
-    } else {
-      storage.add(KEYS.MEMORIZATION, {
-        id: generateId(),
-        ...form, surahId: parseInt(form.surahId),
-        fromAyah: parseInt(form.fromAyah), toAyah: parseInt(form.toAyah),
-        academicYearId: activeYear?.id || '',
-        createdAt: new Date().toISOString(),
-      });
-      showToast(t('common.created'));
+    const activeYear = academicYears.find(y => y.isActive);
+    const payload = {
+      ...form,
+      surahId: parseInt(form.surahId),
+      fromAyah: parseInt(form.fromAyah),
+      toAyah: parseInt(form.toAyah),
+      academicYearId: activeYear?.id || '',
+    };
+    try {
+      if (editId) {
+        await updateMemorization(editId, payload);
+        setEditId(null);
+        showToast(t('common.updated'));
+      } else {
+        await addMemorization(payload);
+        showToast(t('common.created'));
+      }
+      setForm(f => ({ ...f, studentId: '', surahId: 1, fromAyah: 1, toAyah: 1, evaluation: 'good' }));
+    } catch (err) {
+      showToast(err.message);
     }
-    setForm(f => ({ ...f, studentId: '', surahId: 1, fromAyah: 1, toAyah: 1, evaluation: 'good' }));
   };
 
   const handleEdit = (record) => {
@@ -201,9 +201,13 @@ const TeacherMemorization = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleDelete = (id) => {
-    storage.delete(KEYS.MEMORIZATION, id);
-    showToast(t('common.deleted'));
+  const handleDelete = async (id) => {
+    try {
+      await removeMemorization(id);
+      showToast(t('common.deleted'));
+    } catch (err) {
+      showToast(err.message);
+    }
   };
 
   return (
@@ -402,11 +406,11 @@ const TeacherMemorization = () => {
         </table>
       </div>
 
-      {/* AI Memorization Progress Summary */}
       {myClasses.length > 0 && (
         <MemoProgressPanel
           myClasses={myClasses}
-          allUsers={allUsers}
+          allUsers={users}
+          allMemo={memorization}
           filterClass={filterClass}
           t={t}
           lang={lang}

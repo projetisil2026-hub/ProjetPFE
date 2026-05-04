@@ -1,34 +1,36 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { storage, KEYS } from '../../utils/storage';
+import { useData } from '../../contexts/DataContext';
 import { calcTotalHizbProgress } from '../../utils/quranData';
 
 const ParentDashboard = () => {
   const { user } = useAuth();
   const { t, lang } = useLanguage();
+  const { users, classes, memorization, loadAll } = useData();
   const navigate = useNavigate();
   const [selectedChildId, setSelectedChildId] = useState('');
 
+  useEffect(() => { loadAll(); }, [loadAll]);
+
   const children = useMemo(() => {
-    const allUsers = storage.getAll(KEYS.USERS);
-    return allUsers.filter(u => user?.childrenIds?.includes(u.id));
-  }, [user]);
+    return users.filter(u => user?.childrenIds?.includes(u.id));
+  }, [users, user]);
 
   const selectedChild = children.find(c => c.id === selectedChildId) || children[0];
 
   const childData = useMemo(() => {
     if (!selectedChild) return null;
-    const myClass = storage.findOne(KEYS.CLASSES, c => c.studentIds?.includes(selectedChild.id));
-    const teacher = myClass ? storage.findOne(KEYS.USERS, u => u.id === myClass.teacherId) : null;
-    const memos   = storage.getAll(KEYS.MEMORIZATION).filter(m => m.studentId === selectedChild.id);
+    const myClass = classes.find(c => c.studentIds?.includes(selectedChild.id));
+    const teacher = myClass ? users.find(u => u.id === myClass.teacherId) : null;
+    const memos = memorization.filter(m => m.studentId === selectedChild.id);
     const hizbProgress = calcTotalHizbProgress(memos);
     return { myClass, teacher, hizbProgress };
-  }, [selectedChild]);
+  }, [selectedChild, classes, users, memorization]);
 
-  const parentName  = lang === 'ar' ? (user?.nameAr || user?.name) : (user?.nameEn || user?.name);
-  const childName   = (child) => lang === 'ar' ? (child?.nameAr || child?.name) : (child?.nameEn || child?.name);
+  const parentName = lang === 'ar' ? (user?.nameAr || user?.name) : (user?.nameEn || user?.name);
+  const childName = (child) => lang === 'ar' ? (child?.nameAr || child?.name) : (child?.nameEn || child?.name);
   const teacherName = lang === 'ar'
     ? (childData?.teacher?.nameAr || childData?.teacher?.name)
     : (childData?.teacher?.nameEn || childData?.teacher?.name);
@@ -38,7 +40,7 @@ const ParentDashboard = () => {
   return (
     <div className="space-y-6">
 
-      {/* ── Hero ── */}
+      {/* Hero */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-gold-500 via-amber-600 to-amber-800 p-6 text-white shadow-lg animate-fade-in-up">
         <div className="absolute inset-0 opacity-10">
           <svg className="absolute -top-8 -right-8 w-56 h-56" fill="currentColor" viewBox="0 0 200 200"><circle cx="150" cy="50" r="80"/></svg>
@@ -54,7 +56,6 @@ const ParentDashboard = () => {
         </div>
       </div>
 
-      {/* ── No children ── */}
       {children.length === 0 && (
         <div className="card p-12 text-center">
           <svg className="w-12 h-12 mx-auto mb-3 text-[var(--color-border)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -66,7 +67,7 @@ const ParentDashboard = () => {
 
       {children.length > 0 && (
         <>
-          {/* ── Child selector ── */}
+          {/* Child selector */}
           <div className="card p-5 animate-fade-in-up delay-75">
             <p className="text-sm font-medium text-[var(--color-text-muted)] mb-3">{t('parent.dashboard.selectChild')}</p>
             <div className="flex flex-wrap gap-3">
@@ -99,7 +100,7 @@ const ParentDashboard = () => {
 
           {selectedChild && childData && (
             <>
-              {/* ── Hizb progress (clickable → memorization) ── */}
+              {/* Hizb progress */}
               <div
                 className="card p-5 cursor-pointer hover:shadow-md hover:scale-[1.01] transition-all duration-200 group animate-fade-in-up delay-150"
                 onClick={() => navigate('/parent/memorization')}
@@ -112,7 +113,6 @@ const ParentDashboard = () => {
                   <svg className="w-3.5 h-3.5 ms-auto text-[var(--color-text-muted)] opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                 </h3>
                 <div className="flex items-center gap-6 flex-wrap">
-                  {/* Ring */}
                   <div className="relative w-24 h-24 flex-shrink-0">
                     <svg className="w-24 h-24 -rotate-90" viewBox="0 0 96 96">
                       <circle cx="48" cy="48" r="38" fill="none" stroke="currentColor" strokeWidth="10" className="text-[var(--color-border)]"/>
@@ -123,7 +123,6 @@ const ParentDashboard = () => {
                       {Math.round(pct)}%
                     </span>
                   </div>
-                  {/* Bar */}
                   <div className="flex-1 space-y-2">
                     <div className="flex justify-between text-sm mb-1">
                       <span className="text-[var(--color-text-muted)]">{t('memo.progress')}</span>
@@ -137,9 +136,8 @@ const ParentDashboard = () => {
                 </div>
               </div>
 
-              {/* ── Class & Teacher ── */}
+              {/* Class & Teacher */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fade-in-up delay-225">
-                {/* Class card — info only, no redirect */}
                 <div className="card p-5">
                   <div className="flex items-center gap-2 mb-3">
                     <span className="w-7 h-7 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center">
@@ -169,7 +167,6 @@ const ParentDashboard = () => {
                   ) : <p className="text-[var(--color-text-muted)] text-sm">—</p>}
                 </div>
 
-                {/* Teacher card (info only) */}
                 <div className="card p-5">
                   <div className="flex items-center gap-2 mb-3">
                     <span className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center">
@@ -191,7 +188,7 @@ const ParentDashboard = () => {
                 </div>
               </div>
 
-              {/* ── Schedule (info only, no redirect) ── */}
+              {/* Schedule */}
               {childData.myClass?.schedule?.length > 0 && (
                 <div className="card p-5 animate-fade-in-up delay-300">
                   <h3 className="font-semibold text-[var(--color-text)] mb-4 flex items-center gap-2">
