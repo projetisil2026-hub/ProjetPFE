@@ -18,7 +18,12 @@
       "PowerShell(Remove-Item \"d:\\\\info\\\\3_th\\\\PFE\\\\ProjetPFE-main\\\\ProjetPFE\\\\src\\\\utils\\\\auth.js\" -Force -Confirm:$false)",
       "PowerShell(Remove-Item \"d:\\\\info\\\\3_th\\\\PFE\\\\ProjetPFE-main\\\\ProjetPFE\\\\src\\\\utils\\\\quranDbSeeder.js\" -Force -Confirm:$false)",
       "PowerShell(Remove-Item \"d:\\\\info\\\\3_th\\\\PFE\\\\ProjetPFE-main\\\\ProjetPFE\\\\src\\\\utils\\\\quranText.js\" -Force -Confirm:$false)",
-      "PowerShell(Get-WmiObject Win32_Process -Filter \"name='node.exe'\")"
+      "PowerShell(Get-WmiObject Win32_Process -Filter \"name='node.exe'\")",
+      "PowerShell(Get-Service | Where-Object { $_.Name -match \"mysql|maria|wamp|sql\" } | Select-Object Name, Status, DisplayName)",
+      "PowerShell(Get-Service)",
+      "PowerShell(\\(Get-WmiObject Win32_Service | Where-Object { $_.Name -eq \"wampmysqld64\" }\\).PathName)",
+      "PowerShell($mysql = \"c:\\\\wamp644\\\\bin\\\\mysql\\\\mysql9.1.0\\\\bin\\\\mysql.exe\"; & $mysql -u root -e \"SHOW DATABASES; CREATE DATABASE IF NOT EXISTS tatabu;\" 2>&1)",
+      "PowerShell($mysql = \"c:\\\\wamp644\\\\bin\\\\mysql\\\\mysql9.1.0\\\\bin\\\\mysql.exe\"; & $mysql -u root -e \"SHOW DATABASES;\" 2>&1)"
     ]
   }
 }
