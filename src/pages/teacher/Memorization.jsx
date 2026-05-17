@@ -2,11 +2,9 @@ import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useData } from '../../contexts/DataContext';
-import { SURAHS, calcHizbProgress } from '../../utils/quranData';
-import { formatHijri, formatGregorian, todayISO, gregorianToHijri, hijriToGregorian, HIJRI_MONTHS_AR, HIJRI_MONTHS_EN } from '../../utils/hijriDate';
+import { SURAHS, calcTotalHizbProgress } from '../../utils/quranData';
+import { formatHijri, formatGregorian, todayISO, gregorianToHijri, HIJRI_MONTHS_AR, HIJRI_MONTHS_EN } from '../../utils/hijriDate';
 import { ConfirmModal } from '../../components/common/Modal';
-
-const TOTAL_QURAN_AYAHS = 6236;
 
 const evalColors = {
   excellent: 'bg-brand-green-100 text-brand-green-700 dark:bg-brand-green-900/30 dark:text-brand-green-400',
@@ -25,22 +23,20 @@ const MemoProgressPanel = ({ myClasses, allUsers, allMemo, filterClass, t, lang 
       const student = allUsers.find(u => u.id === sid);
       if (!student) return null;
       const studentMemos = allMemo.filter(m => m.studentId === sid);
-      const totalAssigned = studentMemos.reduce((sum, m) => sum + (m.toAyah - m.fromAyah + 1), 0);
-      const memorized = studentMemos
-        .filter(m => m.evaluation !== 'repeat')
-        .reduce((sum, m) => sum + (m.toAyah - m.fromAyah + 1), 0);
-      const progressPct = totalAssigned > 0
-        ? Math.min(Math.round((memorized / totalAssigned) * 100), 100)
-        : 0;
-      const quranPct = Math.min(((memorized / TOTAL_QURAN_AYAHS) * 100).toFixed(2), 100);
+      const countedMemos = studentMemos.filter(m => m.evaluation !== 'repeat');
+      const hizbProgress = calcTotalHizbProgress(countedMemos.map(m => ({
+        surahId: m.surahId,
+        fromAyah: m.fromAyah,
+        toAyah: m.toAyah,
+      })));
+      // percentage = (memorized_hizb / 60) × 100
+      const progressPct = parseFloat(((hizbProgress / 60) * 100).toFixed(2));
       return {
         id: sid,
         name: lang === 'ar' ? (student.nameAr || student.name) : (student.nameEn || student.name || student.nameAr),
         className: cls.name,
-        totalAssigned,
-        memorized,
+        hizbProgress,
         progressPct,
-        quranPct,
       };
     }).filter(Boolean)
   );
@@ -53,7 +49,7 @@ const MemoProgressPanel = ({ myClasses, allUsers, allMemo, filterClass, t, lang 
         </span>
         {t('memo.title')} — {t('memo.progress')}
         <span className="ms-auto text-xs text-[var(--color-text-muted)] font-normal">
-          {t('memo.totalProgress')}: {TOTAL_QURAN_AYAHS} {t('quran.ayahs')}
+          {t('memo.totalProgress')}: 60 {t('quran.hizb')}
         </span>
       </h3>
       {studentProgress.length === 0 ? (
@@ -69,7 +65,7 @@ const MemoProgressPanel = ({ myClasses, allUsers, allMemo, filterClass, t, lang 
                 </div>
                 <div className="text-end">
                   <span className="text-lg font-bold text-brand-green-600">{s.progressPct}%</span>
-                  <p className="text-xs text-[var(--color-text-muted)]">{s.memorized} / {s.totalAssigned} {t('quran.ayahs')}</p>
+                  <p className="text-xs text-[var(--color-text-muted)]">{s.hizbProgress.toFixed(2)} / 60 {t('quran.hizb')}</p>
                 </div>
               </div>
               <div className="h-2.5 bg-[var(--color-border)] rounded-full overflow-hidden">
@@ -81,9 +77,6 @@ const MemoProgressPanel = ({ myClasses, allUsers, allMemo, filterClass, t, lang 
                   }}
                 />
               </div>
-              <p className="text-xs text-[var(--color-text-muted)] mt-1.5">
-                {t('quran.totalAyahs')}: {s.quranPct}% {t('common.from')} {TOTAL_QURAN_AYAHS}
-              </p>
             </div>
           ))}
         </div>
@@ -102,8 +95,14 @@ const TeacherMemorization = () => {
   const [hijriMonth, setHijriMonth] = useState(todayHijri.month);
   const [hijriDay, setHijriDay] = useState(todayHijri.day);
 
+  const buildHijriString = (y, m, d) => {
+    const pad = v => String(v).padStart(2, '0');
+    return `${y}-${pad(m)}-${pad(d)}`;
+  };
+
   const [form, setForm] = useState({
     classId: '', studentId: '', date: todayISO(),
+    hijriDate: buildHijriString(todayHijri.year, todayHijri.month, todayHijri.day),
     surahId: 1, fromAyah: 1, toAyah: 1, evaluation: 'good',
   });
   const [editId, setEditId] = useState(null);
@@ -122,14 +121,18 @@ const TeacherMemorization = () => {
   const hijriMonthNames = lang === 'ar' ? HIJRI_MONTHS_AR : HIJRI_MONTHS_EN;
   const hijriYears = Array.from({ length: 15 }, (_, i) => todayHijri.year - 5 + i);
 
-  const updateHijriDate = (y, m, d) => {
-    const iso = hijriToGregorian(y, m, d);
-    setForm(f => ({ ...f, date: iso }));
+  const handleHijriYearChange = (y) => {
+    const v = parseInt(y); setHijriYear(v);
+    setForm(f => ({ ...f, hijriDate: buildHijriString(v, hijriMonth, hijriDay) }));
   };
-
-  const handleHijriYearChange = (y) => { const v = parseInt(y); setHijriYear(v); updateHijriDate(v, hijriMonth, hijriDay); };
-  const handleHijriMonthChange = (m) => { const v = parseInt(m); setHijriMonth(v); updateHijriDate(hijriYear, v, hijriDay); };
-  const handleHijriDayChange = (d) => { const v = parseInt(d); setHijriDay(v); updateHijriDate(hijriYear, hijriMonth, v); };
+  const handleHijriMonthChange = (m) => {
+    const v = parseInt(m); setHijriMonth(v);
+    setForm(f => ({ ...f, hijriDate: buildHijriString(hijriYear, v, hijriDay) }));
+  };
+  const handleHijriDayChange = (d) => {
+    const v = parseInt(d); setHijriDay(v);
+    setForm(f => ({ ...f, hijriDate: buildHijriString(hijriYear, hijriMonth, v) }));
+  };
 
   const studentsForClass = useMemo(() => {
     if (!form.classId) return [];
@@ -142,8 +145,6 @@ const TeacherMemorization = () => {
   }, [form.classId, myClasses, users, attendance]);
 
   const selectedSurah = SURAHS.find(s => s.id === parseInt(form.surahId));
-  const ayahCount = form.toAyah - form.fromAyah + 1;
-  const hizbEstimate = selectedSurah ? calcHizbProgress(parseInt(form.surahId), parseInt(form.fromAyah), parseInt(form.toAyah)) : 0;
 
   const records = useMemo(() => {
     let all = memorization.filter(m => myClasses.some(c => c.id === m.classId));
@@ -172,6 +173,7 @@ const TeacherMemorization = () => {
       fromAyah: parseInt(form.fromAyah),
       toAyah: parseInt(form.toAyah),
       academicYearId: activeYear?.id || '',
+      hijriDate: form.hijriDate || null,
     };
     try {
       if (editId) {
@@ -182,7 +184,9 @@ const TeacherMemorization = () => {
         await addMemorization(payload);
         showToast(t('common.created'));
       }
-      setForm(f => ({ ...f, studentId: '', surahId: 1, fromAyah: 1, toAyah: 1, evaluation: 'good' }));
+      const nowHijri = gregorianToHijri(new Date());
+      setForm(f => ({ ...f, studentId: '', surahId: 1, fromAyah: 1, toAyah: 1, evaluation: 'good', date: todayISO(), hijriDate: buildHijriString(nowHijri.year, nowHijri.month, nowHijri.day) }));
+      setHijriYear(nowHijri.year); setHijriMonth(nowHijri.month); setHijriDay(nowHijri.day);
     } catch (err) {
       showToast(err.message);
     }
@@ -190,12 +194,20 @@ const TeacherMemorization = () => {
 
   const handleEdit = (record) => {
     setEditId(record.id);
-    const h = gregorianToHijri(record.date);
-    setHijriYear(h.year);
-    setHijriMonth(h.month);
-    setHijriDay(h.day);
+    // Load stored Hijri date if available, otherwise calculate from Gregorian
+    let hYear, hMonth, hDay;
+    if (record.hijriDate) {
+      [hYear, hMonth, hDay] = record.hijriDate.split('-').map(Number);
+    } else {
+      const h = gregorianToHijri(record.date);
+      hYear = h.year; hMonth = h.month; hDay = h.day;
+    }
+    setHijriYear(hYear);
+    setHijriMonth(hMonth);
+    setHijriDay(hDay);
     setForm({
       classId: record.classId, studentId: record.studentId, date: record.date,
+      hijriDate: record.hijriDate || buildHijriString(hYear, hMonth, hDay),
       surahId: record.surahId, fromAyah: record.fromAyah, toAyah: record.toAyah, evaluation: record.evaluation,
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -238,28 +250,38 @@ const TeacherMemorization = () => {
               </select>
             </div>
             <div className="space-y-1">
-              <label className="label">{t('memo.date')}</label>
-              <div className="grid grid-cols-3 gap-2">
-                <select value={hijriDay} onChange={e => handleHijriDayChange(e.target.value)} className="select text-sm">
-                  {Array.from({ length: 30 }, (_, i) => i + 1).map(d => (
-                    <option key={d} value={d}>{d}</option>
-                  ))}
-                </select>
-                <select value={hijriMonth} onChange={e => handleHijriMonthChange(e.target.value)} className="select text-sm">
-                  {hijriMonthNames.map((name, i) => (
-                    <option key={i + 1} value={i + 1}>{name}</option>
-                  ))}
-                </select>
-                <select value={hijriYear} onChange={e => handleHijriYearChange(e.target.value)} className="select text-sm">
-                  {hijriYears.map(y => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
-              </div>
-              {form.date && (
-                <p className="text-xs text-[var(--color-text-muted)] pt-0.5">{formatGregorian(form.date, lang)}</p>
-              )}
+              <label className="label">{t('attendance.date')}</label>
+              <input
+                type="date"
+                value={form.date}
+                onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
+                className="input"
+                required
+              />
             </div>
+          </div>
+
+          {/* Independent Hijri date row */}
+          <div className="space-y-1">
+            <label className="label">{t('memo.hijriDate')}</label>
+            <div className="grid grid-cols-3 gap-2 max-w-sm">
+              <select value={hijriDay} onChange={e => handleHijriDayChange(e.target.value)} className="select text-sm">
+                {Array.from({ length: 30 }, (_, i) => i + 1).map(d => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+              <select value={hijriMonth} onChange={e => handleHijriMonthChange(e.target.value)} className="select text-sm">
+                {hijriMonthNames.map((name, i) => (
+                  <option key={i + 1} value={i + 1}>{name}</option>
+                ))}
+              </select>
+              <select value={hijriYear} onChange={e => handleHijriYearChange(e.target.value)} className="select text-sm">
+                {hijriYears.map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+            <p className="text-xs text-[var(--color-text-muted)] pt-0.5">{t('attendance.hijriDate')}</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -297,14 +319,6 @@ const TeacherMemorization = () => {
               />
             </div>
           </div>
-
-          {ayahCount > 0 && (
-            <div className="flex items-center gap-4 p-3 rounded-xl bg-brand-gold-50 dark:bg-brand-gold-900/20 text-sm">
-              <span className="text-brand-gold-700 dark:text-brand-gold-400 font-medium">{t('quran.ayahs')}: {ayahCount}</span>
-              <span className="text-brand-gold-700 dark:text-brand-gold-400">|</span>
-              <span className="text-brand-gold-700 dark:text-brand-gold-400 font-medium">≈ {hizbEstimate.toFixed(3)} {t('quran.hizb')}</span>
-            </div>
-          )}
 
           <div>
             <label className="label">{t('memo.evaluation')}</label>
@@ -365,7 +379,14 @@ const TeacherMemorization = () => {
                 <td className="table-td font-medium">{r.studentName}</td>
                 <td className="table-td text-[var(--color-text-muted)]">{r.className}</td>
                 <td className="table-td">
-                  <div className="font-medium text-sm">{formatHijri(r.date, lang)}</div>
+                  <div className="font-medium text-sm">
+                    {r.hijriDate ? (() => {
+                      const [hy, hm, hd] = r.hijriDate.split('-').map(Number);
+                      const names = lang === 'ar' ? HIJRI_MONTHS_AR : HIJRI_MONTHS_EN;
+                      const suffix = lang === 'ar' ? ' هـ' : ' AH';
+                      return `${hd} ${names[hm - 1] || ''} ${hy}${suffix}`;
+                    })() : formatHijri(r.date, lang)}
+                  </div>
                   <div className="text-xs text-[var(--color-text-muted)]">{formatGregorian(r.date, lang)}</div>
                 </td>
                 <td className="table-td font-medium" style={{ fontFamily: lang === 'ar' ? "'Amiri', serif" : undefined }}>

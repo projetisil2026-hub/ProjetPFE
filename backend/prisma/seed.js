@@ -5,11 +5,20 @@ const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();
 
 async function main() {
+  // Safety guard: refuse to wipe data if real users exist
+  const existingCount = await prisma.user.count();
+  if (existingCount > 0 && process.env.FORCE_SEED !== 'yes') {
+    console.error(`❌ Seed aborted: ${existingCount} users already exist in the database.`);
+    console.error('   Set FORCE_SEED=yes to override (THIS WILL DELETE ALL DATA):');
+    console.error('   FORCE_SEED=yes node prisma/seed.js');
+    process.exit(1);
+  }
+
   console.log('🌱 Seeding Tatabu database...');
 
   const hash = async (pw) => bcrypt.hash(pw, 10);
 
-  // Clear existing data
+  // Clear existing data (role tables cascade-delete when user is deleted)
   await prisma.memorization.deleteMany();
   await prisma.attendance.deleteMany();
   await prisma.message.deleteMany();
@@ -17,6 +26,10 @@ async function main() {
   await prisma.classStudent.deleteMany();
   await prisma.class.deleteMany();
   await prisma.academicYear.deleteMany();
+  await prisma.admin.deleteMany();
+  await prisma.teacher.deleteMany();
+  await prisma.student.deleteMany();
+  await prisma.parent.deleteMany();
   await prisma.user.deleteMany();
 
   // Academic year
@@ -154,6 +167,17 @@ async function main() {
       parentId: parent2.id,
     },
   });
+
+  // Role profile rows (must exist for every user)
+  await prisma.admin.create({ data: { userId: admin.id } });
+  await prisma.teacher.create({ data: { userId: teacher1.id } });
+  await prisma.teacher.create({ data: { userId: teacher2.id } });
+  await prisma.parent.create({ data: { userId: parent1.id } });
+  await prisma.parent.create({ data: { userId: parent2.id } });
+  await prisma.student.create({ data: { userId: student1.id } });
+  await prisma.student.create({ data: { userId: student2.id } });
+  await prisma.student.create({ data: { userId: student3.id } });
+  await prisma.student.create({ data: { userId: student4.id } });
 
   // Classes
   const class1 = await prisma.class.create({

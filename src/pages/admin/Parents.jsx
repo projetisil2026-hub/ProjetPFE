@@ -87,6 +87,7 @@ const AdminParents = () => {
           <thead className="table-head">
             <tr>
               <th className="table-th">{t('common.name')}</th>
+              <th className="table-th">{t('auth.username')}</th>
               <th className="table-th">{t('common.phone')}</th>
               <th className="table-th">{t('parents.children')}</th>
               <th className="table-th">{t('common.actions')}</th>
@@ -94,13 +95,14 @@ const AdminParents = () => {
           </thead>
           <tbody>
             {parents.length === 0 ? (
-              <tr><td colSpan={4} className="table-td text-center text-[var(--color-text-muted)] py-8">{t('common.noData')}</td></tr>
+              <tr><td colSpan={5} className="table-td text-center text-[var(--color-text-muted)] py-8">{t('common.noData')}</td></tr>
             ) : parents.map(parent => (
               <tr key={parent.id} className="table-row">
                 <td className="table-td">
                   <p className="font-medium">{lang === 'ar' ? (parent.nameAr || parent.name) : (parent.nameEn || parent.nameAr || parent.name)}</p>
                   {lang !== 'ar' && parent.nameAr && <p className="text-xs text-[var(--color-text-muted)]">{parent.nameAr}</p>}
                 </td>
+                <td className="table-td text-[var(--color-text-muted)] font-mono text-xs">{parent.username || '—'}</td>
                 <td className="table-td text-[var(--color-text-muted)]">{parent.phone || '—'}</td>
                 <td className="table-td">
                   {parent.children.length === 0 ? <span className="text-xs text-[var(--color-text-muted)]">—</span> : (
@@ -131,6 +133,17 @@ const AdminParents = () => {
           <div className="grid grid-cols-2 gap-3">
             <div><label className="label">{t('parents.nameAr')}</label><input type="text" value={form.nameAr} onChange={e => setForm({...form, nameAr: e.target.value})} className="input" dir="rtl" placeholder="الاسم بالعربية" required={!form.nameEn} /></div>
             <div><label className="label">{t('parents.nameEn')}</label><input type="text" value={form.nameEn} onChange={e => setForm({...form, nameEn: e.target.value})} className="input" placeholder="Name in English" /></div>
+          </div>
+          <div>
+            <label className="label">{t('auth.username')}</label>
+            <input
+              type="text"
+              value={form.username}
+              onChange={e => setForm({...form, username: e.target.value.toLowerCase().replace(/\s+/g, '.')})}
+              className="input"
+              placeholder="parent.username"
+              required={!editingParent}
+            />
           </div>
           <div><label className="label">{t('common.phone')}</label><input type="tel" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="input" /></div>
           <div><label className="label">{t('auth.password')}</label><input type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} className="input" required={!editingParent} placeholder={editingParent ? '••••••••' : ''} /></div>

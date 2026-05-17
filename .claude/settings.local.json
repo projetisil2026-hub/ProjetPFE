@@ -9,7 +9,16 @@
       "Bash(netstat -ano)",
       "Bash(findstr \":5000\")",
       "Bash(taskkill /PID 17972 /F)",
-      "Bash(dir \"d:\\\\info\\\\3_th\\\\PFE\\\\ProjetPFE-main\\\\ProjetPFE\" /A /B)"
+      "Bash(dir \"d:\\\\info\\\\3_th\\\\PFE\\\\ProjetPFE-main\\\\ProjetPFE\" /A /B)",
+      "PowerShell(Remove-Item \"d:\\\\info\\\\3_th\\\\PFE\\\\ProjetPFE-main\\\\ProjetPFE\\\\src\\\\utils\\\\arabicTokenizer.js\" -Force -Confirm:$false)",
+      "PowerShell(Remove-Item \"d:\\\\info\\\\3_th\\\\PFE\\\\ProjetPFE-main\\\\ProjetPFE\\\\src\\\\utils\\\\quranMetadata.js\" -Force -Confirm:$false)",
+      "PowerShell(Remove-Item \"d:\\\\info\\\\3_th\\\\PFE\\\\ProjetPFE-main\\\\ProjetPFE\\\\src\\\\utils\\\\weightedProgress.js\" -Force -Confirm:$false)",
+      "PowerShell(Remove-Item \"d:\\\\info\\\\3_th\\\\PFE\\\\ProjetPFE-main\\\\ProjetPFE\\\\src\\\\utils\\\\__tests__\\\\weightedProgress.test.js\" -Force -Confirm:$false)",
+      "PowerShell(Remove-Item \"d:\\\\info\\\\3_th\\\\PFE\\\\ProjetPFE-main\\\\ProjetPFE\\\\src\\\\utils\\\\storage.js\" -Force -Confirm:$false)",
+      "PowerShell(Remove-Item \"d:\\\\info\\\\3_th\\\\PFE\\\\ProjetPFE-main\\\\ProjetPFE\\\\src\\\\utils\\\\auth.js\" -Force -Confirm:$false)",
+      "PowerShell(Remove-Item \"d:\\\\info\\\\3_th\\\\PFE\\\\ProjetPFE-main\\\\ProjetPFE\\\\src\\\\utils\\\\quranDbSeeder.js\" -Force -Confirm:$false)",
+      "PowerShell(Remove-Item \"d:\\\\info\\\\3_th\\\\PFE\\\\ProjetPFE-main\\\\ProjetPFE\\\\src\\\\utils\\\\quranText.js\" -Force -Confirm:$false)",
+      "PowerShell(Get-WmiObject Win32_Process -Filter \"name='node.exe'\")"
     ]
   }
 }

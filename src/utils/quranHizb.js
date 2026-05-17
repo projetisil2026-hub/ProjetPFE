@@ -124,8 +124,10 @@ export const HIZB_BOUNDARIES = [
   [31, 18, 75,  19, 98],   // 18:75 → Maryam 19:98                 (134 v)
   [32, 20, 1,   20, 135],  // Ta-Ha 20:1 → 20:135                  (135 v)
   // Juz 17
-  [33, 21, 1,   21, 77],   // Al-Anbiya 21:1 → 21:77               (77  v)
-  [34, 21, 78,  22, 78],   // 21:78 → Al-Hajj 22:78                (113 v)
+  // Boundary verified against King Fahd Complex (Medina Mushaf): the ½-Juz marker
+  // falls at 22:1 (start of Al-Hajj), making each Surah its own complete Hizb.
+  [33, 21, 1,   21, 112],  // Al-Anbiya 21:1 → 21:112              (112 v)
+  [34, 22, 1,   22, 78],   // Al-Hajj  22:1 → 22:78                 (78  v)
   // Juz 18
   [35, 23, 1,   23, 100],  // Al-Mu'minun 23:1 → 23:100            (100 v)
   [36, 23, 101, 25, 20],   // 23:101 → Al-Furqan 25:20             (102 v)

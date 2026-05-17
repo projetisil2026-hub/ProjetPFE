@@ -19,7 +19,7 @@ exports.login = async (req, res, next) => {
       where: {
         OR: [
           { email: id },
-          { username: identifier },
+          { username: id },
         ],
       },
     });

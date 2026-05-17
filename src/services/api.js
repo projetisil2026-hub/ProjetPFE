@@ -1,6 +1,18 @@
 const BASE = '/api';
 
-const getToken = () => localStorage.getItem('tatabu_auth_token');
+const TOKEN_KEY = 'tatabu_auth_token';
+const USER_KEY  = 'tatabu_auth_user';
+
+const getToken = () => localStorage.getItem(TOKEN_KEY);
+
+function handleExpiredSession() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+  // Avoid redirect loop on the login page itself
+  if (!window.location.pathname.includes('/login')) {
+    window.location.href = '/login';
+  }
+}
 
 async function request(method, path, body) {
   const token = getToken();
@@ -12,6 +24,14 @@ async function request(method, path, body) {
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
+
+  // Global 401 guard: token is expired or secret changed — wipe and redirect
+  if (res.status === 401 && path !== '/auth/login') {
+    handleExpiredSession();
+    const err = new Error('Session expired. Please log in again.');
+    err.status = 401;
+    throw err;
+  }
 
   const json = await res.json();
   if (!res.ok) {

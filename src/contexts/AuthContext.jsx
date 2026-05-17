@@ -14,16 +14,27 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const storedToken = localStorage.getItem(TOKEN_KEY);
     const storedUser = localStorage.getItem(USER_KEY);
-    if (storedToken && storedUser) {
-      try {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-      } catch {
+
+    if (!storedToken || !storedUser) {
+      setLoading(false);
+      return;
+    }
+
+    // Verify token is still valid on the server before trusting it
+    setToken(storedToken);
+    authAPI.me()
+      .then(res => {
+        setUser(res.data);
+        localStorage.setItem(USER_KEY, JSON.stringify(res.data));
+      })
+      .catch(() => {
+        // Token rejected by server (expired, secret changed, etc.) — wipe silently
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
-      }
-    }
-    setLoading(false);
+        setToken(null);
+        setUser(null);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const login = async (identifier, password, expectedRole) => {

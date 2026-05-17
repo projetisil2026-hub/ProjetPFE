@@ -2,19 +2,19 @@ import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useData } from '../../contexts/DataContext';
-import { calcTotalHizbProgress } from '../../utils/quranData';
+import { calcTotalHizbProgress, SURAHS } from '../../utils/quranData';
 import { exportMemorizationPDF } from '../../utils/pdfExport';
-import { SURAHS } from '../../utils/quranData';
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
 
 const TeacherReports = () => {
   const { user } = useAuth();
   const { t, lang } = useLanguage();
-  const { users, classes, attendance, memorization, loadAll } = useData();
+  const { users, classes, attendance, memorization, academicYears, loadAll } = useData();
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState('');
   const [toast, setToast] = useState(null);
 
   useEffect(() => { loadAll(); }, [loadAll]);
@@ -28,6 +28,13 @@ const TeacherReports = () => {
     if (!selectedClass && myClasses[0]) setSelectedClass(myClasses[0].id);
   }, [myClasses, selectedClass]);
 
+  useMemo(() => {
+    if (!selectedAcademicYear && academicYears.length > 0) {
+      const active = academicYears.find(y => y.isActive);
+      setSelectedAcademicYear(active?.id || academicYears[0]?.id || '');
+    }
+  }, [academicYears, selectedAcademicYear]);
+
   const classStudents = useMemo(() => {
     if (!activeClass) return [];
     return users.filter(u => activeClass.studentIds?.includes(u.id));
@@ -37,11 +44,17 @@ const TeacherReports = () => {
     if (!activeClass) return null;
     const allAttend = attendance.filter(a => {
       const d = new Date(a.date);
-      return a.classId === activeClass.id && d.getMonth() + 1 === selectedMonth && d.getFullYear() === selectedYear;
+      return a.classId === activeClass.id
+        && d.getMonth() + 1 === selectedMonth
+        && d.getFullYear() === selectedYear
+        && (!selectedAcademicYear || a.academicYearId === selectedAcademicYear);
     });
     const allMemo = memorization.filter(m => {
       const d = new Date(m.date);
-      return m.classId === activeClass.id && d.getMonth() + 1 === selectedMonth && d.getFullYear() === selectedYear;
+      return m.classId === activeClass.id
+        && d.getMonth() + 1 === selectedMonth
+        && d.getFullYear() === selectedYear
+        && (!selectedAcademicYear || m.academicYearId === selectedAcademicYear);
     });
 
     const studentStats = classStudents.map(s => {
@@ -53,18 +66,17 @@ const TeacherReports = () => {
     }).sort((a, b) => b.hizbProgress - a.hizbProgress);
 
     return { studentStats, totalAttend: allAttend, totalMemo: allMemo };
-  }, [activeClass, classStudents, selectedMonth, selectedYear, attendance, memorization]);
-
-  const now = new Date();
-  const isEndOfMonth = now.getDate() >= 25;
+  }, [activeClass, classStudents, selectedMonth, selectedYear, selectedAcademicYear, attendance, memorization]);
 
   const handleExportPDF = () => {
-    if (!isEndOfMonth) { showToast(t('reports.endOfMonth')); return; }
     if (!activeClass || !stats) return;
 
     const allMemo = memorization.filter(m => {
       const d = new Date(m.date);
-      return m.classId === activeClass.id && d.getMonth() + 1 === selectedMonth && d.getFullYear() === selectedYear;
+      return m.classId === activeClass.id
+        && d.getMonth() + 1 === selectedMonth
+        && d.getFullYear() === selectedYear
+        && (!selectedAcademicYear || m.academicYearId === selectedAcademicYear);
     });
 
     stats.studentStats.forEach(s => {
@@ -90,16 +102,22 @@ const TeacherReports = () => {
 
       <div className="page-header flex flex-wrap items-center justify-between gap-3">
         <div><h1 className="page-title">{t('reports.title')}</h1></div>
-        <button onClick={handleExportPDF} disabled={!isEndOfMonth} className="btn-secondary disabled:opacity-50">
+        <button onClick={handleExportPDF} className="btn-secondary">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
           {t('reports.exportPDF')}
-          {!isEndOfMonth && <span className="text-xs opacity-75 ms-1">(end of month)</span>}
         </button>
       </div>
 
       {/* Period selector */}
       <div className="card p-4">
         <div className="flex flex-wrap gap-3 items-end">
+          <div>
+            <label className="label">{t('year.academic')}</label>
+            <select value={selectedAcademicYear} onChange={e => setSelectedAcademicYear(e.target.value)} className="select w-44">
+              <option value="">{t('common.all')}</option>
+              {academicYears.map(y => <option key={y.id} value={y.id}>{y.name}{y.isActive ? ` (${t('year.active')})` : ''}</option>)}
+            </select>
+          </div>
           <div>
             <label className="label">{t('common.class')}</label>
             <select value={selectedClass} onChange={e => setSelectedClass(e.target.value)} className="select w-48">

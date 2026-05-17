@@ -38,6 +38,8 @@ export const DataProvider = ({ children }) => {
       setNotifications(notif);
     } catch (err) {
       console.error('[DataContext] loadAll failed:', err.message);
+      // Reset the gate so a successful login can trigger a fresh load
+      loadedRef.current = false;
     } finally {
       setLoading(false);
     }

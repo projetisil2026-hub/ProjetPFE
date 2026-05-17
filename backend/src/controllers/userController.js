@@ -19,6 +19,24 @@ const enrichUser = async (user) => {
   return formatUser(user, childrenIds);
 };
 
+const ROLE_CREATE = {
+  admin:   (userId)              => prisma.admin.create({ data: { userId } }),
+  teacher: (userId)              => prisma.teacher.create({ data: { userId } }),
+  student: (userId, hizb)        => prisma.student.create({ data: { userId, hizbMemorized: parseFloat(hizb) || 0 } }),
+  parent:  (userId)              => prisma.parent.create({ data: { userId } }),
+};
+
+const createRoleProfile = async (userId, role, hizbMemorized) => {
+  const fn = ROLE_CREATE[role];
+  if (!fn) return;
+  try {
+    await fn(userId, hizbMemorized);
+  } catch (err) {
+    // P2002 = unique constraint violation — profile already exists, nothing to do
+    if (err.code !== 'P2002') throw err;
+  }
+};
+
 exports.getAll = async (req, res, next) => {
   try {
     const { role } = req.query;
@@ -72,7 +90,9 @@ exports.create = async (req, res, next) => {
       },
     });
 
-    // Update parent's childrenIds by linking via parentId (already done via DB relation)
+    // Create role-specific profile record
+    await createRoleProfile(user.id, role, hizbMemorized);
+
     // If classId provided, enroll in class
     if (classId && role === 'student') {
       await prisma.classStudent.upsert({
